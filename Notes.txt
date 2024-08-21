@@ -1,0 +1,19 @@
+Labels follow this format:
+
+[TAG/NAME]_ADDRESS
+(examples: LOOP_C000, ThisIsAVeryDescriptiveLabelName_8934)
+Tag is used for generic labels that don't have a unique name.
+
+Tags:
+CODE - marks a block of code
+DATA - marks a block of data
+UNUSED - marks a block of unused code or data
+LOOP - marks a returning point that is treated as a loop of instructions
+RETURN - marks a return from routine
+POINTERS - marks a block of data pointers
+
+NOTE TO MYSELF, CUZ I KEEP FORGETTING
+Blinky - Dark Red
+Inky - Blue
+Pinky - Pink (this one is obvious)
+Sue - Red

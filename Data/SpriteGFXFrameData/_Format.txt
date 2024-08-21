@@ -1,0 +1,21 @@
+GRAPHICAL TABLES are stored in these files.
+these are used to format sprite tiles fo each entity and their animations
+Format:
+The very first byte of the table determines how many sprite tiles are used
+The rest are 4 byte-long entries for each of the tiles
+First byte - Y-displacement
+Second byte - tile
+Third byte - property (palette, X/Y flip, background priority bit)
+Fourth byte - X-displacement
+
+example:
+.byte 1
+.byte -8,$80,OAMProp_Palette3,-8
+
+the very first byte of the table is the amount of sprite tiles used to render this entity. since it's one in this case, it will use one OAM tile
+
+after this, the rest is as explained above:
+since first byte is Y-displacement, it'll be displaced by -8 pixels (negative value means displaced upwards, positive - downward)
+second byte is sprite tile to display
+third byte is property of the tile, in this case the sprite tile will use sprite palette 3
+fourth byte is X-displacement, same as Y-displacement but on X-axis.

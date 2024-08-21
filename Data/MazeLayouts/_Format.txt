@@ -1,0 +1,19 @@
+;MAZE LAYOUT FORMAT
+;Credit to BMF54123 and Scoutboy for their document on this subject
+;following values are used to make a maze:
+;00-0F (maze walls, dots)
+;40-7F (maze walls)
+;RepeatMazeTile [Tile], [Times]
+;Maze_EndMazeBuilding (end of maze)
+
+;to save on space, the game only needs data for the left side of the maze, the right side is mirrored.
+;00-0F - these tiles do not get mirrored and stay consistent on both sides of the maze
+;40-5F - these tiles get mirrored by adding $20 offset when drawn on the right side of the screen
+;conversely, tiles 60-7F are also mirrored on the right side by substracting $20 instead
+
+;RepeatMazeTile command is further used to compress the data
+;for example, instead of having 5 bytes of $05, like $05,$05,$05,$05,$05 following is used:
+;RepeatMazeTile $05, 5
+;5 bytes compressed into 2. It uses a special command, Maze_RepeatTileCommand + the rest of bits as the amount of times to repeat said tile (so, tiles $80-$FF are not useable for constructing a maze)
+
+;the width of one half of the maze is 14 tiles (8x8), make sure it's aligned properly

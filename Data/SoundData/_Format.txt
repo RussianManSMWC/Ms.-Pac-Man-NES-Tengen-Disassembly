@@ -1,0 +1,36 @@
+;SOUND DATA FORMAT
+;Each sound byte has a header consisting of two bytes
+;First byte determines what channel it uses and what sound slot:
+;low nibble - channel (see SoundChannelEnableBits_EFE3 for respective channels taht can be enabled)
+;high nibble - sound slot (one of the 6 possible slots it can take)
+;Second byte determines the priority of this sound byte. If an attempt made to load a new sound byte into the same channel, their priorities are checked. Whichever has the higher priority remains.
+
+;After this, the sound data starts properly. Typically, the sound byte always start with an init command: SoundCommand_InitChannel
+;This command takes 4 bytes to initialize the channel playback.
+;This command can be used again during the sound byte to re-initialize the channel (to change something other than frequency/length of the note).
+
+;There are other commands that can be encountered in a sound byte:
+;SoundCommand_SetNoteProperties - uses one byte to set the next note's properties instead of modifying current properties (more on props later).
+;SoundCommand_RepeatAPairOfBytes - as the name suggests, this command throws the data offset a couple of bytes back to loop the sound. Only used by power pellet loop.
+;SoundCommand_EndPlayback - this ends the sound byte playback. You don't need this if SoundCommand_RepeatAPairOfBytes is used, since the sound byte will loop endlessly.
+
+;The rest of values are property bytes, in following bitwise format:
+;TTTOFFFF
+;T bits are responsible for setting the note's timing, using a lookup table.
+;O bit is responsible for frequency offset mode. If set, the frequency will be offset towards higher values. However, if none of the F bits are set, this is instead used to set frequency to 0.
+;FFFF - Frequency offset - used to offset frequncy lookup table forward or backwards, decreasing and increasing frequency, respectively. If none of these bits are set, the frequency doesn't change (provided O bit isn't set).
+
+;let's take a look at this completely made up example:
+;.byte $12,$20
+;.byte SoundCommand_InitChannel,$88,$00,$05,$08
+;.byte SoundCommand_SetNoteProperties,$14
+;.byte $A0,$5E
+;.byte SoundCommand_EndPlayback
+
+;in this example, we're playing triangle channel on sound slot 1 with priority of $20.
+;we're initializing the channel variables on the next line
+;then we're setting properties right after, which includes note length and base frequency (convert hex to bitwise = %00010100)
+;the next byte has none of the first 5 bits set, which means the play the sound at the same frequency for some amount of time.
+;the last byte (converted from hex into bitwise = %01011110) has bit 4 (bit O) set, which means the frequency will be lower, the lookup table index will be offset by 1110 (by 14 values), then play for the amount of time determined by the last three bits.
+;then the sound ends with an appropriate command.
+

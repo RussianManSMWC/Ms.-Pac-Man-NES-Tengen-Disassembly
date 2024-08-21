@@ -1,0 +1,8 @@
+;Tile Stripe(s) data
+;FORMAT: ([VRAM Address], [String of Tiles], [Break Command $FF]), [Break Command $00] OR ([VRAM Address], [String of Tiles], [Break Command $FF]), and so on
+;VRAM Address - VRAM (PPU) location to draw to
+;String of Tiles - should be self explanatory, a continuous row of tiles to draw.
+;If the tile is a text font character, a FontOffset value will be added
+;If the tile value is empty space (" " without quotation marks), will draw an empty space (tile $00)
+;Break command $FF is used to stop drawing the row
+;After which, if encountered a $00 command, the drawing is completely stopped, otherwise will keep repeating the process of setting VRAM then drawing and so on
