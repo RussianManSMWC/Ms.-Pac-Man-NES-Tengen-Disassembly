@@ -73,7 +73,7 @@ Player2EntitySlot = $BB
 CurrentEntitySpeed = $BC                                    ;used to determine the movement speed of any given entity (varies per entity)
 
 FreezeTimer = $BD                                           ;decrements once a frame
-GhostScatterTime = $BE                                      ;16-bit, when the timer reaches 0, the ghosts will begin their normal chasing procedure, otherwise they'll target whatever tile they please
+GhostScatterTimer = $BE                                     ;16-bit. Once GhostScatterTimer+1 reaches FF (underflow from 00), the ghosts will begin their normal chasing procedure, otherwise they'll target whatever tile they please
 ;$C0-$C3 - ?
 
 PowerPelletTimer = $C4                                      ;16-bit

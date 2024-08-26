@@ -16,15 +16,16 @@ DefaultSpritePalettes_87D8:
 ;the last palette doesn't matter, it's dynamically set when fruit/item spawns)
 
 ;BG1 palette for the current maze (depends on maze selection, layout and current level value)
+;Some palettes are also used for other screens.
 MazePalettes_87E4:
 .byte $0F,$36,$15,$30
-.byte $0F,$21,$30,$28
+.byte $0F,$21,$30,$28                                       ;also loaded in the options menu
 .byte $0F,$16,$30,$15
 .byte $0F,$01,$38,$30
-.byte $0F,$35,$28,$30
+.byte $0F,$35,$28,$30                                       ;also loaded at the title screen/character cast
 .byte $0F,$36,$15,$30
 .byte $0F,$17,$30,$30
-.byte $0F,$13,$30,$28
+.byte $0F,$13,$30,$28                                       ;also loaded in the credits screen (the last color is hardcoded to be replaced with a different color for the copyright text)
 .byte $0F,$0F,$30,$28
 .byte $0F,$0F,$01,$30
 .byte $0F,$14,$25,$30
@@ -54,18 +55,18 @@ MazePalettes_87E4:
 .byte $0F,$0B,$30,$30
 
 ;default BG0 palette (replaced right after anyway, so it's of questionable use)
-;technically also defaults BG1-BG3 with bouncing item palettes right below
+;technically also defaults BG1-BG3 with bouncing item palettes right below (since they're used for HUD display)
 DefaultBackgroundPalettes_8870:
 .byte $0F,$08,$30,$30
 
-;palettes for various bouncing items
+;palettes for various bouncing items (first three entries are shared with background palettes 1-3 for HUD
 BouncingItemPalettes_8874:
-.byte $0F,$28,$05,$0F
-.byte $0F,$1A,$16,$30
-.byte $0F,$05,$1A,$30                                       ;cherry
-.byte $0F,$28,$26,$07                                       ;orange
-.byte $0F,$19,$3C,$0C
-.byte $0F,$27,$17,$30
-.byte $0F,$11,$25,$30
-.byte $0F,$07,$36,$16
-.byte $0F,$01,$26,$30
+.byte $0F,$28,$05,$0F                                       ;only used for one bouncing item - Banana. outside of that, it's also used for pac-man and ms.pac-man lives display on the HUD.
+.byte $0F,$1A,$16,$30                                       ;orange, pretzel, pear, ring
+.byte $0F,$05,$1A,$30                                       ;cherry, strawberry, apple
+.byte $0F,$28,$26,$07                                       ;clax hand
+.byte $0F,$19,$3C,$0C                                       ;high heel
+.byte $0F,$27,$17,$30                                       ;flower
+.byte $0F,$11,$25,$30                                       ;drink
+.byte $0F,$07,$36,$16                                       ;ice cream
+.byte $0F,$01,$26,$30                                       ;PA star

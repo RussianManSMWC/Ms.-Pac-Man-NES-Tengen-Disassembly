@@ -50,35 +50,35 @@ EntityGFXData_Item1000Score_AB09:
 .byte 0,$53,OAMProp_Palette2,0
 
 EntityGFXData_Item2000Score_AB1A:
-.byte $04
+.byte 4
 .byte -8,$54,OAMProp_Palette2,-8
 .byte -8,$51,OAMProp_Palette2,0
 .byte 0,$52,OAMProp_Palette2,-8
 .byte 0,$53,OAMProp_Palette2,0
 
 EntityGFXData_Item5000Score_AB2B:
-.byte $04
+.byte 4
 .byte -8,$50,OAMProp_Palette2,-8
 .byte -8,$51,OAMProp_Palette2,0
 .byte 0,$52,OAMProp_Palette2,-8
 .byte 0,$53,OAMProp_Palette2,0
 
 EntityGFXData_Item6000Score_AB3C:
-.byte $04
+.byte 4
 .byte -8,$5E,OAMProp_Palette2,-8
 .byte -8,$51,OAMProp_Palette2,0
 .byte 0,$52,OAMProp_Palette2,-8
 .byte 0,$53,OAMProp_Palette2,0
 
 EntityGFXData_Item7000Score_AB4D:
-.byte $04
+.byte 4
 .byte -8,$5F,OAMProp_Palette2,-8
 .byte -8,$51,OAMProp_Palette2,0
 .byte 0,$52,OAMProp_Palette2,-8
 .byte 0,$53,OAMProp_Palette2,0
 
 EntityGFXData_Item8000Score_AB5E:
-.byte $04
+.byte 4
 .byte -8,$4E,OAMProp_Palette2,-8
 .byte -8,$51,OAMProp_Palette2,0
 .byte 0,$52,OAMProp_Palette2,-8

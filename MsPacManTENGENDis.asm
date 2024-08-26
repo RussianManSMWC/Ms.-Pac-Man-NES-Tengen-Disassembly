@@ -240,20 +240,20 @@ STA PowerPelletTimer                                        ;
 STA PowerPelletTimer+1                                      ;
 STA FrameCounter                                            ;
 STA FrameCounter+1                                          ;
-STA $BE
+STA GhostScatterTimer
 
-LDA #$02
-STA $BF
+LDA #$02                                                    ;scatter for 512 frames
+STA GhostScatterTimer+1                                      ;(approximately 8.5 seconds)
 
-LDA #TileStripeID_MazePlayerXEmpty
-JSR DrawTileStripes_9B80
+LDA #TileStripeID_MazePlayerXEmpty                          ;remove player-related string within the maze
+JSR DrawTileStripes_9B80                                    ;
 
-JSR PlaceGhostsInMaze_85F6
+JSR PlaceGhostsInMaze_85F6                                  ;spooky ghosts appear!
 
-LDA CameraBottomBoundary
+LDA CameraBottomBoundary                                    ;
 SBC CameraPositionY                                         ;the taller the level is, the longer this timer will be
-ADC #$40
-STA FreezeTimer
+ADC #$40                                                    ;
+STA FreezeTimer                                             ;
 
 JSR CODE_83B8
 
@@ -269,7 +269,7 @@ LDA FreezeTimer                                             ;check if the timer 
 CMP #$01                                                    ;
 BNE CODE_8161                                               ;
 
-LDA #Entity_ID_READYString                                  ;do not display READY during demo
+LDA #Entity_ID_READYString                                  ;remove ready string in case it was spawned
 JSR RemoveCertainEntities_827C                              ;
 
 LDA DemoMovementIndex                                       ;initialize game over string, maybe
@@ -300,7 +300,7 @@ JSR HandleEntities_8A8C
 JSR HandleEntityGraphics_8A12
 JSR HandleGameplayTileAnimations_94EB
 JSR CODE_9605
-JSR CODE_9310
+JSR HandleGhostScatterTimerAndTimedTurning_9310             ;tick down scatter mode timer and make ghosts turn around at certain points
 JSR CheckRemainingDots_8519                                 ;check if the level should count as beaten when all dots are gobbled
 
 LDA LevelSelectInputCounter                                 ;check if entered the full level skip code
@@ -308,8 +308,8 @@ CMP #$1E                                                    ;
 BNE CODE_81CB                                               ;
 
 LDA Player1Inputs_Press                                     ;pressing select will mark the level as beaten
-AND #Input_Select
-BEQ CODE_81CB
+AND #Input_Select                                           ;
+BEQ CODE_81CB                                               ;
 
 LDA #$01                                                    ;level beaten flag?
 STA LevelBeatenFlag                                         ;beat it!
@@ -657,7 +657,7 @@ STA CurrentPlayerConfiguration                              ;
 
 JSR CODE_868C
 
-LDA #$08
+LDA #Entity_ID_GAME_OVERString
 JSR RemoveCertainEntities_827C
 JSR CODE_E4F3
 JSR CODE_83CE
@@ -2210,7 +2210,7 @@ JSR PollRandomNumber_A3D8
 AND #$1F                                                    ;give random location to reach.
 STA Entity_TargetTileXPosition,X
 
-JSR PollRandomNumber_A3D8                                   ;this is supposed to break them out of infinitely looping in certain stages by giving them a different coordinate to reach and hopefully getting our
+JSR PollRandomNumber_A3D8                                   ;this is supposed to break them out of infinitely looping in certain stages by giving them a different coordinate to reach and hopefully getting out
 AND #$1F
 STA Entity_TargetTileYPosition,X
 
@@ -2266,7 +2266,7 @@ CODE_8C71:
 LDA #$00
 STA Entity_GFXProperties,X
 
-JSR CODE_E459
+JSR HandleEnteringTunnel_E459
 JSR HandleEntityVisualPosition_A383
 
 DEC $04FB                                                   ;some counter....
@@ -2406,7 +2406,7 @@ CMP #$02                                                    ;some sort of state 
 BMI CODE_8D46
 
 JSR CODE_8C7F
-JSR CODE_E459
+JSR HandleEnteringTunnel_E459
 JSR HandleEntityVisualPosition_A383
 RTS
 
@@ -2418,7 +2418,7 @@ CODE_8D4C:
 LDA #$00                                                    ;no special props
 STA Entity_GFXProperties,X
 
-JSR CODE_E459
+JSR HandleEnteringTunnel_E459
 JSR HandleEntityVisualPosition_A383
 
 LDY Player1EntitySlot
@@ -2471,29 +2471,32 @@ CODE_8D8B:
 PLA                                                         ;
 RTS                                                         ;
 
-;offsets for tiles that each ghost attempts to reach for each ghost, based on player's direction and what character. used when chasing the player
+;offsets for tile a tile at player's position that each ghost attempts to reach for each ghost, based on player's direction and what character. used when chasing the player
 ;this is horizontal
 ;in following order: player faces right, up, left, down
-DATA_8D8D:
+GhostTargetingRelativeToPlayerOffset_Horz_8D8D:
 .byte $00,$00,$00,$00 ;blinky (tries to reach the exact tile the player is on)
 .byte -$02,$00,$02,$00 ;sue (tries to get behind of the player)
 .byte $04,-$01,-$04,$01 ;inky (tries to get ahead of the player+slight offset to one side)
 .byte $04,$01,-$04,-$01 ;pinky (tries to get ahead of the player+slight offset to another side)
 
 ;vertical
-DATA_8D9D:
+GhostTargetingRelativeToPlayerOffset_Vert_8D9D:
 .byte $00,$00,$00,$00
 .byte $00,$02,$00,-$02
 .byte $01,-$04,-$01,$04
 .byte -$01,-$04,$01,$04
 
+;chase the player or scatter
+;HandleGhostTargeting_8DAD:
 CODE_8DAD:
 LDA DemoMovementIndex                                       ;check if in demo mode
-BNE CODE_8DD9                                               ;always chase the player
+BNE HandleGhostChasingPlayers_8DD9                          ;always chase the player
 
-LDA $BF
-BMI CODE_8DD9                                               ;some sort of frame timer... (scatter timer?)
+LDA GhostScatterTimer+1                                     ;check if scatter tume has ended
+BMI HandleGhostChasingPlayers_8DD9                          ;get to chasing
 
+;ghost scattering behavior here
 LDA FrameCounter                                            ;
 AND #$3F                                                    ;do nothing special for 64 frames
 BNE RETURN_8DD8                                             ;
@@ -2503,13 +2506,13 @@ AND #$0F                                                    ;between 0-15...
 ADC #$04                                                    ;+4, so that's tile 4-19.
 STA Entity_TargetTileXPosition,X                            ;horizontal
 
-JSR PollRandomNumber_A3D8
-LDY CurrentLevel
+JSR PollRandomNumber_A3D8                                   ;
+LDY CurrentLevel                                            ;
 CPY #$05                                                    ;level 6 onward...
-BCS CODE_8DD3
+BCS CODE_8DD3                                               ;
 AND #$0F                                                    ;between tiles 0-15
-CLV
-BVC CODE_8DD5
+CLV                                                         ;
+BVC CODE_8DD5                                               ;
 
 CODE_8DD3:
 AND #$1F                                                    ;larger area of randomness (0-31)
@@ -2520,39 +2523,40 @@ STA Entity_TargetTileYPosition,X                            ;
 RETURN_8DD8:
 RTS                                                         ;
 
-CODE_8DD9:
-JSR GetPlayerSlot_8D75
+;ghost chasing behavior here
+HandleGhostChasingPlayers_8DD9:
+JSR GetPlayerSlot_8D75                                      ;get one of the players' slots
 
-LDA Entity_Ghost_Character,X
-ASL A
-ASL A
+LDA Entity_Ghost_Character,X                                ;
+ASL A                                                       ;
+ASL A                                                       ;
 ADC Entity_Direction,Y                                      ;player's direction
-STA $89
-TAY
+STA $89                                                     ;
+TAY                                                         ;
 
-LDA DATA_8D9D,Y
-JSR GetPlayerSlot_8D75
-CLC
+LDA GhostTargetingRelativeToPlayerOffset_Vert_8D9D,Y        ;offset vertical target tile orientation
+JSR GetPlayerSlot_8D75                                      ;
+CLC                                                         ;
 ADC Entity_CurrentTileYPosition,Y                           ;see if the player is near the top of the screen
-BPL CODE_8DF4
+BPL CODE_8DF4                                               ;
 
 LDA #$00                                                    ;default vertical tile to chase so it doesn't overflow into something Bad
 
 CODE_8DF4:
 STA Entity_TargetTileYPosition,X                            ;Chase That Spot I Think
 
-LDY $89
-LDA DATA_8D8D,Y
-JSR GetPlayerSlot_8D75
-CLC
+LDY $89                                                     ;
+LDA GhostTargetingRelativeToPlayerOffset_Horz_8D8D,Y        ;
+JSR GetPlayerSlot_8D75                                      ;
+CLC                                                         ;
 ADC Entity_CurrentTileXPosition,Y                           ;if the player is about to enter the tunnel and go offscreen
-BPL CODE_8E07
+BPL CODE_8E07                                               ;
 
 LDA #$00                                                    ;chase the very left side of the screen
 
 CODE_8E07:
 STA Entity_TargetTileXPosition,X                            ;chase that spot i think
-RTS
+RTS                                                         ;
 
 EntityMainCode_VulnerableGhost_8E0B:
 JSR SetVulnerableGhostPaletteColors_8FC8                    ;
@@ -2561,7 +2565,7 @@ LDA FreezeTimer                                             ;cannot act if this 
 BEQ CODE_8E16                                               ;
 
 JSR HandleEntityVisualPosition_A383                         ;only display graphics
-RTS
+RTS                                                         ;
 
 CODE_8E16:
 LDA PowerPelletTimer+1                                      ;power pellet timer on?
@@ -2578,7 +2582,7 @@ LDA #$00                                                    ;init visual appeara
 STA Entity_GFXFrame,X                                       ;
 STA Entity_GFXProperties,X                                  ;
 
-JSR CODE_E459
+JSR HandleEnteringTunnel_E459
 JSR HandleEntityVisualPosition_A383
 RTS
 
@@ -2605,7 +2609,7 @@ CMP #$02
 BMI CODE_8E58
 
 JSR CODE_8C7F
-JSR CODE_E459
+JSR HandleEnteringTunnel_E459
 JSR HandleEntityVisualPosition_A383
 RTS
 
@@ -2640,7 +2644,7 @@ STA Entity_GFXFrame,X                                       ;
 LDA #$00                                                    ;refresh props
 STA Entity_GFXProperties,X                                  ;
 
-JSR CODE_E459
+JSR HandleEnteringTunnel_E459
 JSR HandleEntityVisualPosition_A383
 
 LDY Player1EntitySlot                                       ;check if player 1 is among us
@@ -2849,7 +2853,7 @@ RTS
 DrawingPriorityPerGhost_8FAC:
 .byte $04,$03,$01,$02
 
-;used to define ghost's color, especially after being vulnerable
+;used to define ghost's color, especially after being vulnerable (and drawing priority)
 SetGhostColor_8FB0:
 LDY Entity_Ghost_Character,X                                ;type of ghost (inky, pinky, sue or blinky)
 LDA DrawingPriorityPerGhost_8FAC,Y                          ;
@@ -2865,7 +2869,7 @@ PLA                                                         ;
 STA PaletteStorage,Y                                        ;
 RTS                                                         ;
 
-;I guess for the ghost becomes vulnerable...?
+;Set color and graphical priority for vulnerable ghosts
 SetVulnerableGhostPaletteColors_8FC8:
 LDY Entity_Ghost_Character,X                                ;
 LDA DrawingPriorityPerGhost_8FAC,Y                          ;
@@ -3473,40 +3477,39 @@ LDY $8F
 LDA DATA_92C6,Y
 RTS
 
-;handle scatter timer?
-CODE_9310:
+HandleGhostScatterTimerAndTimedTurning_9310:
 JSR CODE_9320
 
-LDA $BF
+LDA GhostScatterTimer+1                                      ;check if done counting this timer down
 BMI RETURN_931F
 
-LDA $BE
-BNE CODE_931D
+LDA GhostScatterTimer                                       ;
+BNE CODE_931D                                               ;
 
-DEC $BF
+DEC GhostScatterTimer+1                                     ;don't forget to tick high byte
 
 CODE_931D:
-DEC $BE
+DEC GhostScatterTimer                                       ;
 
 RETURN_931F:
-RTS
+RTS                                                         ;
 
 CODE_9320:
-LDA FrameCounter
-BNE RETURN_9332
+LDA FrameCounter                                            ;must be in 256 frame intervals
+BNE RETURN_9332                                             ;
 
-LDA FrameCounter+1
-CMP #$03
-BEQ CODE_932F
-CMP #$0A
-BEQ CODE_932F
-RTS
+LDA FrameCounter+1                                          ;check if...
+CMP #$03                                                    ;768 frames have passed
+BEQ CODE_932F                                               ;ghosts will turn opposite directions
+CMP #$0A                                                    ;if 2560 frames have passed...
+BEQ CODE_932F                                               ;also turn around
+RTS                                                         ;
 
 CODE_932F:
-JSR CODE_9333
+JSR CODE_9333                                               ;used to make the game slightly less predictable?
 
 RETURN_9332:
-RTS
+RTS                                                         ;
 
 CODE_9333:
 TXA
@@ -3518,7 +3521,7 @@ LDA Entity_ID,x                                             ;check if its a ghos
 CMP #Entity_ID_Ghost                                        ;
 BNE CODE_9340                                               ;
 
-JSR CODE_9346                                               ;
+JSR CODE_9346                                               ;it suddenly turns around. surprise!
 
 CODE_9340:
 DEX
@@ -3583,7 +3586,7 @@ TAY                                                         ;
 LDA #$21                                                    ;light blue color
 STA PaletteStorage,Y                                        ;
 
-JSR HandleEntityVisualPosition_A383
+JSR HandleEntityVisualPosition_A383                         ;
 
 DEC $20,X                                                   ;timer for this score to be alive
 BNE RETURN_93A6                                             ;
@@ -3692,10 +3695,22 @@ INC BouncingItemState                                       ;this item has been 
 RETURN_9421:
 RTS                                                         ;
 
-;palette configurations for each bouncing item, I think
+;palette configurations (see PaletteData.asm -> BouncingItemPalettes_8874 for the color palettes themselves)
 BouncingItemPaletteIndex_9422:
-.byte $02,$02,$01,$01,$02,$01,$00,$06
-.byte $07,$04,$08,$03,$01,$05
+.byte $02                                                   ;cherry
+.byte $02                                                   ;strawberry
+.byte $01                                                   ;orange
+.byte $01                                                   ;pretzel
+.byte $02                                                   ;apple
+.byte $01                                                   ;pear
+.byte $00                                                   ;banana
+.byte $06                                                   ;drink
+.byte $07                                                   ;ice cream
+.byte $04                                                   ;high heel
+.byte $08                                                   ;PA star
+.byte $03                                                   ;clax
+.byte $01                                                   ;ring
+.byte $05                                                   ;flower
 
 ;vertical dispositions to simulate bouncing movement
 BouncingItemYOffsets_9430:
@@ -3718,7 +3733,7 @@ STA CurrentEntitySpeed                                      ;
 LDA #$00
 STA Entity_GFXProperties,X
 
-JSR CODE_E459
+JSR HandleEnteringTunnel_E459
 
 LDA FreezeTimer
 BNE CODE_9495
@@ -4868,7 +4883,7 @@ JSR CODE_909C
 
 LDA #$00
 STA Entity_GFXProperties,X
-JSR CODE_E459
+JSR HandleEnteringTunnel_E459
 JSR HandleEntityVisualPosition_A383
 
 LDY Player1EntitySlot
@@ -6121,7 +6136,7 @@ LDA #$00
 STA Entity_GFXProperties,X
 
 CODE_E09A:
-JSR CODE_E459
+JSR HandleEnteringTunnel_E459
 RTS
 
 CODE_E09E:
@@ -6860,51 +6875,53 @@ STA Entity_GFXFrame,X                                       ;
 
 CODE_E43D:
 LDA Entity_GFXFrame,X                                       ;get the type of bouncing item
-TAY
+TAY                                                         ;
 LDA BouncingItemPaletteIndex_9422,Y                         ;get appropriate palette index
 ASL A                                                       ;
 ASL A                                                       ;
 TAY                                                         ;
 
-LDA BouncingItemPalettes_8874+1,Y
+LDA BouncingItemPalettes_8874+1,Y                           ;
 STA PaletteStorage+(Palette_Sprite3 + 1)                    ;set palette for the bouncy item
 
 LDA BouncingItemPalettes_8874+2,Y                           ;
 STA PaletteStorage+(Palette_Sprite3 + 2)                    ;
 
-LDA BouncingItemPalettes_8874+3,Y
+LDA BouncingItemPalettes_8874+3,Y                           ;
 STA PaletteStorage+(Palette_Sprite3 + 3)                    ;
-RTS
+RTS                                                         ;
 
-CODE_E459:
-LDA Entity_CurrentTileXPosition,x
-CMP #$03
-BMI CODE_E465
-CMP #$1D
-BPL CODE_E465
-RTS
+;let the tunnel conceal you with the masking tiles and BG Priority OAM property bit.
+;and lets you appear on the other side of the screen if went far enough in
+HandleEnteringTunnel_E459:
+LDA Entity_CurrentTileXPosition,x                           ;
+CMP #$03                                                    ;check if 3 tiles or less to the left
+BMI CODE_E465                                               ;
+CMP #$1D                                                    ;same but on the other side
+BPL CODE_E465                                               ;
+RTS                                                         ;
 
 CODE_E465:
-LDA Entity_GFXProperties,x                                  ;go behind bg and vice-versa
-EOR #OAMProp_BGPriority
-STA Entity_GFXProperties,x
+LDA Entity_GFXProperties,x                                  ;go behind bg
+EOR #OAMProp_BGPriority                                     ;
+STA Entity_GFXProperties,x                                  ;
 
-LDA Entity_CurrentTileXPosition,x
-BNE CODE_E476
+LDA Entity_CurrentTileXPosition,x                           ;check if went far enough to the left
+BNE CODE_E476                                               ;
 
-LDA #$1E
+LDA #$1E                                                    ;appear on the right side of the screen
 STA Entity_CurrentTileXPosition,x
 RTS
 
 CODE_E476:
-CMP #$1F
+CMP #$1F                                                    ;check if went far enough to the right
 BNE RETURN_E47F
 
-LDA #$01
-STA Entity_CurrentTileXPosition,x
+LDA #$01                                                    ;appear on the left side of the screen
+STA Entity_CurrentTileXPosition,x                           ;
 
 RETURN_E47F:
-RTS
+RTS                                                         ;
 
 ;related with flicker in some way, shape, form or color.
 CheckForFlickering_E480:
@@ -11147,7 +11164,7 @@ STA $6001
 RTS
 
 ;clears all RAM, except for the stack area ($0100-$01FF)
-;Also sets iniital regs (enables NMI and display), probably need to rename this...
+;Also sets intital regs
 InitRAMAndRegs_FF77:
 LDX #$00                                                    ;
 TXA                                                         ;
