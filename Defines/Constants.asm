@@ -25,8 +25,6 @@ SmallDotTile = $05
 PowerPelletTile = $06                                       ;a big dot
 MaskingTile = $09                                           ;uses solid color to mask sprites (black on black makes sense in this context, because of background priority)
 
-;insert character cast blinking tiles
-
 ;Options/Credits stuff
 ;this is shared between options and credits screens. Extra coding is required if you want the borders to be in different locations for both screens
 CreditsAndOptions_BorderTopVRAMPosition = $2040
@@ -92,7 +90,7 @@ HUDBottom_VRAMCoordinatesMediumLayout = $2940
 HUDBottom_VRAMCoordinatesTallLayout = $2A00
 
 ;cutscene
-ClapperBaseVRAMPosition = $2148                             ;top-left corner from which the clapper stems
+ClapperBaseVRAMPosition = $2148                             ;top-left corner which the clapper stems from
 ItemBasePositionDuringAct = $2340
 
 ;character cast neon border thing

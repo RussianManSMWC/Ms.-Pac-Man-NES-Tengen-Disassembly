@@ -158,7 +158,7 @@ RTS                                                         ;
 ;LoadGameplay_80CC:
 CODE_80CC:
 JSR InitializeGameplayVariables_86B1
-JSR CODE_86F1
+JSR CODE_86F1                                               ;this seems important for the 2P alternating mode.
 JSR CODE_868C
 JSR InitializeGameplayVariables_86B1                        ;twice???
 
@@ -1298,16 +1298,17 @@ LDA #$05                                                    ;can spawn 6 juniors
 STA PacJuniorCount                                          ;
 RTS                                                         ;
 
+;init some dot stuff, bouncing item and remove entities and reste buffer.
 ;InitMazeVariables_86F1:
 CODE_86F1:
 JSR ResetBufferVariables_9AC1                               ;
 JSR RemoveAllEntities_89DC                                  ;
 
-LDA #$FF
+LDA #$FF                                                    ;default all dot bits
 LDX #$95
 
 LOOP_86FB:
-STA $02ED,X
+STA EatenDotStateBits-1,X
 DEX
 BNE LOOP_86FB
 
@@ -3506,41 +3507,41 @@ BEQ CODE_932F                                               ;also turn around
 RTS                                                         ;
 
 CODE_932F:
-JSR CODE_9333                                               ;used to make the game slightly less predictable?
+JSR FlipAllGhostDirections_9333                             ;used to make the game slightly less predictable?
 
 RETURN_9332:
 RTS                                                         ;
 
-CODE_9333:
-TXA
-PHA
-LDX #$0F
+FlipAllGhostDirections_9333:
+TXA                                                         ;preserve X
+PHA                                                         ;
+LDX #$0F                                                    ;
 
 LOOP_9337:
 LDA Entity_ID,x                                             ;check if its a ghost
 CMP #Entity_ID_Ghost                                        ;
 BNE CODE_9340                                               ;
 
-JSR CODE_9346                                               ;it suddenly turns around. surprise!
+JSR FlipEntityDirection_9346                                ;it suddenly turns around. surprise!
 
 CODE_9340:
-DEX
-BPL LOOP_9337
-PLA
-TAX
-RTS
+DEX                                                         ;next entity
+BPL LOOP_9337                                               ;
+PLA                                                         ;
+TAX                                                         ;restore X
+RTS                                                         ;
 
-;I think this turns an entity the opposite way?
-CODE_9346:
-LDA $20,X
+;used to turn an entity the opposite way
+FlipEntityDirection_9346:
+LDA $20,X                                                   ;check if entity cannot be flipped, i guess.
 CMP #$02
 BCS RETURN_9358
 
-LDA Entity_Direction,X
+LDA Entity_Direction,X                                      ;left is right, up is down and vice-versa
 EOR #$02
 STA Entity_Direction,X
 
-LDA $20,X
+LDA $20,X                                                   ;this changes too
 EOR #$01
 STA $20,X
 
@@ -3968,32 +3969,32 @@ LDA #$00                                                    ;
 STA EatenGhostCombo                                         ;reset c-c-combo!!!
 
 LDY CurrentLevel                                            ;if in levels 20+
-CPY #19
-BCC CODE_9592
+CPY #19                                                     ;
+BCC CODE_9592                                               ;
 
 LDY #18                                                     ;fix range
 
 CODE_9592:
 LDA Options_MazeSelection                                   ;
-BNE CODE_95A3                                               ;the timer of the power pellet will depend on current level
+BNE CODE_95A3                                               ;check if in non-arcade mazes
 
-LDA DATA_EFA1,Y
-CPY #19
-BCC CODE_95A0
+LDA PowerPelletTimes_EFA1,Y
+CPY #19                                                     ;i think this check is pointless...? we've already capped the value beforehand.
+BCC CODE_95A0                                               ;i guess the power pellets were supposed to not give any power in arcade mazes past level 19?
 
-LDA #$00
+LDA #$00                                                    ;inaccessible as far as I can tell
 
 CODE_95A0:
-CLV
-BVC CODE_95A6
+CLV                                                         ;
+BVC CODE_95A6                                               ;
 
 CODE_95A3:
-LDA DATA_EFA1,Y
+LDA PowerPelletTimes_EFA1,Y                                 ;
 
 CODE_95A6:
-TAY
-BEQ CODE_9601
-STA PowerPelletTimer
+TAY                                                         ;
+BEQ CODE_9601                                               ;if no power pellet is given, the ghosts will turn around instead
+STA PowerPelletTimer                                        ;
 
 LDA #$00                                                    ;default high byte
 STA PowerPelletTimer+1
@@ -4004,8 +4005,8 @@ ROL PowerPelletTimer+1                                      ;
 ASL PowerPelletTimer                                        ;times 4?
 ROL PowerPelletTimer+1                                      ;
 
-TXA
-PHA
+TXA                                                         ;
+PHA                                                         ;
 
 LDX #$0F                                                    ;
 
@@ -4020,14 +4021,14 @@ STA Entity_ID,x                                             ;
 LDA #$00                                                    ;default its gfx
 STA Entity_GFXFrame,X                                       ;
 
-JSR CODE_9346
+JSR FlipEntityDirection_9346                                ;vulnerable ghost goes the opposite direction of where they were going before.
 
 CODE_95CC:
-DEX
-BPL LOOP_95BB
+DEX                                                         ;
+BPL LOOP_95BB                                               ;keep changing ghosts if more are present
 
-PLA
-TAX
+PLA                                                         ;
+TAX                                                         ;
 
 LDA Options_Type                                            ;
 CMP #Options_Type_2PlayerCompetitive                        ;see if both players are competing against each other
@@ -4069,7 +4070,7 @@ CLV                                                         ;can be replaced wit
 BVC RETURN_9604                                             ;
 
 CODE_9601:
-JSR CODE_9333                                               ;something about normal ghosts
+JSR FlipAllGhostDirections_9333                             ;the ghosts will not turn vulnerable, they simply flip their movement direction
 
 RETURN_9604:
 RTS                                                         ;
@@ -5830,12 +5831,16 @@ MazeLayoutHeightLevels_AD50:
 .byte $02,$02,$00,$00
 .byte $01,$01,$01,$02
 
-;the tile on y-axis on which the player spawns when loading a maze.
+;the tile on y-axis on which the player or players spawn when loading a maze.
 PlayerStartingYPositionsPerMazeLayout_AD74:
-.byte $17,$17,$17,$17,$17,$17,$14,$17
-.byte $1D,$20,$1D,$1D,$1E,$17,$1D,$1D
-.byte $17,$17,$17,$17,$17,$17,$17,$17
-.byte $17,$17,$17,$17,$1D,$1D,$17,$17
+.byte $17,$17,$17,$17
+.byte $17,$17,$14,$17
+.byte $1D,$20,$1D,$1D
+.byte $1E,$17,$1D,$1D
+.byte $17,$17,$17,$17
+.byte $17,$17,$17,$17
+.byte $17,$17,$17,$17
+.byte $1D,$1D,$17,$17
 .byte $1A,$17,$17,$20
 
 ;maze layout stuff in these files
@@ -6041,14 +6046,13 @@ LDA #$06
 JSR CODE_A35B
 BNE CODE_E033
 
-JSR CODE_9346
+JSR FlipEntityDirection_9346                                ;first player turns the opposite direction
 
-;second player also turns around
 TXA
 PHA
 TYA
 TAX
-JSR CODE_9346
+JSR FlipEntityDirection_9346                                ;second player also turns around
 PLA
 TAX
 
@@ -8831,101 +8835,12 @@ JSR PlaySound_F2FF                                          ;
 RETURN_EF1F:
 RTS                                                         ;
 
-;maze layout values for each selection
-MazeLayoutsPerSelectionPointers_EF20:
-.word ArcadeMazeSelectionLayouts_EF28
-.word MiniMazeSelectionLayouts_EF3E
-.word BigMazeSelectionLayouts_EF5F
-.word StrangeMazeSelectionLayouts_EF80
+.include "Data/MazeLayoutOrders.asm"
 
-;maze layout values for each selection
-;first byte indicates the size of the first pack of level layouts that never repeat
-;the rest are levels that repeat the layout every 16 mazes
-ArcadeMazeSelectionLayouts_EF28:
-.byte @RepeatingMazes-ArcadeMazeSelectionLayouts_EF28-1
-.byte $00,$00,$01,$01,$01 ;levels 1-5
+.include "Data/PowerPelletTimes.asm"
+.include "Data/PlayerAndGhostSpeeds.asm"
 
-@RepeatingMazes:
-.byte $02,$02,$02,$02,$03,$03,$03,$03 ;level 6 onward
-.byte $02,$02,$02,$02,$03,$03,$03,$03
-
-MiniMazeSelectionLayouts_EF3E:
-.byte @RepeatingMazes-MiniMazeSelectionLayouts_EF3E-1
-.byte $04,$05,$04,$05,$06,$04,$05,$06 ;levels 1-16
-.byte $07,$04,$05,$06,$07,$04,$05,$06
-
-@RepeatingMazes:
-.byte $07,$1E,$1E,$07,$06,$05,$04,$1F ;levels 17 onward
-.byte $04,$05,$06,$07,$1E,$05,$06,$1F
-
-BigMazeSelectionLayouts_EF5F:
-.byte @RepeatingMazes-BigMazeSelectionLayouts_EF5F-1
-.byte $0A,$0B,$0C,$0A,$0B,$0C,$0D,$0E ;levels 1-16
-.byte $08,$09,$0E,$0C,$0D,$0F,$0B,$0A
-
-@RepeatingMazes:
-.byte $09,$08,$09,$0A,$1D,$0C,$0D,$0E ;levels 17 onward
-.byte $0F,$1C,$0F,$0E,$1D,$0B,$1C,$23
-
-StrangeMazeSelectionLayouts_EF80:
-.byte @RepeatingMazes-StrangeMazeSelectionLayouts_EF80-1
-.byte $19,$11,$12,$16,$15,$22,$1A,$20 ;levels 1-16
-.byte $1B,$09,$10,$18,$22,$0F,$14,$1E
-
-@RepeatingMazes:
-.byte $08,$13,$0A,$0B,$0C,$0D,$0E,$16 ;levels 17 onward
-.byte $1C,$1D,$17,$1E,$20,$07,$18,$21
-
-;power pellet timers, depending on difficulty or something
-DATA_EFA1:
-.byte $60,$50,$40,$30,$20,$50,$20,$1C
-.byte $18,$40,$20,$1C,$18,$20,$1C,$18
-
-;unknown
-.byte $00,$18
-
-;known
-.byte $20
-
-;speed modifier for each game difficulty.
-PlayerSpeedPerDifficulty_EFB4:
-.byte $00                                                   ;normal
-.byte -$04                                                  ;easy (slighly slower)
-.byte $0C                                                   ;hard
-.byte $18                                                   ;crazy
-
-;speed modifier for each game difficulty.
-GhostSpeedPerDifficulty_EFB8:
-.byte $00                                                   ;normal
-.byte -$08                                                  ;easy (slow down instead of speed up)
-.byte $10                                                   ;hard
-.byte $20                                                   ;C R A Z Y
-
-;determines player speed, the speed changes every 4 levels
-PlayerSpeedPerLevels_EFBC:
-.byte $20 ;levels 1-4
-.byte $24 ;levels 5-8
-.byte $24 ;levels 9-12
-.byte $28 ;levels 13-16
-.byte $27 ;levels 17-20
-.byte $26 ;levels 21-24
-.byte $25 ;levels 25-28
-.byte $24 ;levels 29-32
-.byte $23 ;levels 33-36 (these are normally inaccessible without cheats)
-.byte $22 ;levels 37-40
-.byte $20 ;levels 41-44
-.byte $1F ;levels 45-48
-.byte $1E ;levels 49-52
-.byte $1C ;levels 53 and beyond
-
-;determines ghost speed for levels 1-13.
-;The last value applies to level 13 and above.
-GhostSpeedPerLevel_EFCA:
-.byte $18,$18,$18,$18                                       ;levels 1-4
-.byte $20,$21,$22,$23                                       ;levels 5-8
-.byte $24,$25,$26,$27                                       ;levels 9-12
-.byte $28                                                   ;level 13+
-
+;related to ghost spawn i believe. blinky is always out of the ghost box.
 DATA_EFD7:
 .byte $08,$04,$03,$03
 
@@ -9044,7 +8959,7 @@ JMP OffsetSoundDataPointer_F38D                             ;
 SetNoteProperty_F382:
 INY                                                         ;
 LDA ($89),Y                                                 ;
-STA Sound_CurrentNoteParameters,X                           ;set frequency/timing instead of modifying its
+STA Sound_CurrentNoteParameters,X                           ;set frequency/timing instead of offsetting current values
 
 LDA #$02                                                    ;skip over
 JMP OffsetSoundDataPointer_F38D                             ;
@@ -9122,7 +9037,7 @@ STA $89                                                     ;
 LDA Sound_DataPointerHigh,X                                 ;
 ADC #$FF                                                    ;
 STA Sound_DataPointerHigh,X                                 ;
-STA $8A                                                     ;look ma, LDA!
+STA $8A                                                     ;look ma, no LDA!
 
 LDY #$00                                                    ;
 LDA ($89),Y                                                 ;
@@ -9135,7 +9050,7 @@ LDY #$00                                                    ;
 LDA ($89),Y                                                 ;
 
 LOOP_F400:
-CMP #$FF                                                    ;check if encountered a stop command
+CMP #SoundCommand_EndPlayback                               ;check if encountered a stop command
 BNE CODE_F40A                                               ;
 
 LDA #$00                                                    ;sound over
@@ -9154,7 +9069,7 @@ CMP #SoundCommand_SetNoteProperties                         ;see if we need to s
 BNE CODE_F41E                                               ;
 
 JSR SetNoteProperty_F382                                    ;
-JMP LOOP_F400
+JMP LOOP_F400                                               ;
 
 CODE_F41E:
 CMP #SoundCommand_RepeatAPairOfBytes                        ;see if we need to loop back
@@ -9167,7 +9082,7 @@ JMP LOOP_F400
 CODE_F428:
 PHA
 AND #$1F                                                    ;first 5 bits...
-CMP #$10                                                    ;check if its less than 10
+CMP #$10                                                    ;check if its less than $10
 BPL CODE_F439                                               ;
 CLC                                                         ;frequency decreases
 ADC Sound_CurrentNoteParameters,X                           ;
@@ -9177,7 +9092,7 @@ CLV
 BVC CODE_F44A
 
 CODE_F439:
-BNE CODE_F440                                               ;check if exactly 10...
+BNE CODE_F440                                               ;check if exactly $10...
 
 LDA #$4A                                                    ;set frequency to 0
 CLV                                                         ;
@@ -9225,7 +9140,7 @@ ASL A
 ASL A
 TAY
 LDA Sound_ChannelVariable1,X                                ;store SFX stuff into appropriate channel
-STA APU_Square1DutyAndVolume,Y                              ;note that this isn't eqlusively square 1, it can be any of the channels (depending on Y offset)
+STA APU_Square1DutyAndVolume,Y                              ;note that this isn't exclusively square 1, it can be any of the channels (depending on Y offset)
 
 INY
 LDA Sound_ChannelVariable2,X

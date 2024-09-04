@@ -4,7 +4,7 @@
 Entity_ID = $00                                             ;if 0, the slot isn't used
 Entity_GFXFrame = $10                                       ;animation stuff
 ;Entity_MovementType = $20                                  ;actually, this has differing uses for different entities...
-Entity_Player_RotationTimer = $20                           ;uesd for death sequence
+Entity_Player_RotationTimer = $20                           ;used for death sequence
 Entity_Ghost_Character = $30                                ;used exclusively by ghosts, this determines what character this ghost is supposed to be
 Entity_Direction = $40                                      ;facing direction. 0 - right, 1 - up, 2 - left, 3 - down
 
@@ -90,7 +90,7 @@ PacJuniorCount = $CB                                        ;how many pac-man ju
 ;$CE-$CF - X/Y tile position the bouncing item should reach?
 
 Score_CurrentPlayer = $D0                                   ;24-bit. in most cases, this is player 1's score, except for alternating 2P type
-;$D3 - but stored to an equally unused $03A3 (2 player alternating)
+;$D3 - unused, but stored to an equally unused $03A3 (2 player alternating)
 
 CurrentPlayerLives = $D4
 CurrentLevel = $D5                                          ;usually acts as the current players' level (1 player or simultaneous)
