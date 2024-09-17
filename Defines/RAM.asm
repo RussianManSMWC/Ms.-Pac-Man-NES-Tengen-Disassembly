@@ -18,7 +18,9 @@ CameraBottomBoundary = $81                                  ;how low the camera 
 
 CurrentMazeSize = $82                                       ;0 - mini, 1 - medium, 2 - big
 
-;$83 - ???
+;$83-$84 - misc ram (similar to TEMP_RAM)
+
+;$85 - unused
 
 FrameCounter = $86                                          ;16-bit
 FrameFlag = $88
@@ -74,7 +76,10 @@ CurrentEntitySpeed = $BC                                    ;used to determine t
 
 FreezeTimer = $BD                                           ;decrements once a frame
 GhostScatterTimer = $BE                                     ;16-bit. Once GhostScatterTimer+1 reaches FF (underflow from 00), the ghosts will begin their normal chasing procedure, otherwise they'll target whatever tile they please
-;$C0-$C3 - ?
+;$C0-$C1 - ?
+
+EntityTurningDirection = $C2                                ;direction the entity should take at intersections when moving to a specified target
+EntityTurningLikelihood = $C3                               ;the likelyhood of the entity turning in one direction at the intersection. the higher the value, the more likely it'll turn a given direction
 
 PowerPelletTimer = $C4                                      ;16-bit
 
@@ -97,6 +102,8 @@ CurrentLevel = $D5                                          ;usually acts as the
 OneUpScoreTargetIndex = $D6                                 ;used for awarding 1-up based on score
 
 BouncingItemState = $D7                                     ;0 - can spawn item 1, 1 - the item has been spawned, 2 - can spawn the second, 3 - the item has been spawned again
+
+;$D8-$FF - unused
 
 Score_HighScore = $0100                                     ;24-bit, for 1 player and 2 player alternating
 ;$0103 - unused

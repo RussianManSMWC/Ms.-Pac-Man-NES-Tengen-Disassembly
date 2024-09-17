@@ -240,10 +240,10 @@ STA PowerPelletTimer                                        ;
 STA PowerPelletTimer+1                                      ;
 STA FrameCounter                                            ;
 STA FrameCounter+1                                          ;
-STA GhostScatterTimer
+STA GhostScatterTimer                                       ;
 
 LDA #$02                                                    ;scatter for 512 frames
-STA GhostScatterTimer+1                                      ;(approximately 8.5 seconds)
+STA GhostScatterTimer+1                                     ;(approximately 8.5 seconds)
 
 LDA #TileStripeID_MazePlayerXEmpty                          ;remove player-related string within the maze
 JSR DrawTileStripes_9B80                                    ;
@@ -1129,45 +1129,45 @@ RTS                                                         ;
 
 ;loads them into the gameplay
 PlaceGhostsInMaze_85F6:
-LDA #$0F
-STA $8D
+LDA #$0F                                                    ;y-position inside of the ghost box
+STA $8D                                                     ;
 
-LDA #Entity_ID_Ghost
-JSR SpawnEntity_8A61
-BMI CODE_8619
+LDA #Entity_ID_Ghost                                        ;spawn ghost
+JSR SpawnEntity_8A61                                        ;
+BMI CODE_8619                                               ;this shouldn't happen. if all slots are occupied, don't spawn the ghost.
 
-LDA #$00
-STA Entity_CurrentTileSubXPosition,X
+LDA #$00                                                    ;
+STA Entity_CurrentTileSubXPosition,X                        ;place just outside of the ghost box.
 
-LDA #$10
-STA Entity_CurrentTileXPosition,x
+LDA #$10                                                    ;
+STA Entity_CurrentTileXPosition,x                           ;
 
-LDA #$80
-STA Entity_CurrentTileSubYPosition,x
+LDA #$80                                                    ;
+STA Entity_CurrentTileSubYPosition,x                        ;
 
-LDA #$0B
-STA Entity_CurrentTileYPosition,x
+LDA #$0B                                                    ;
+STA Entity_CurrentTileYPosition,x                           ;
 
-LDA #Entity_Ghost_Character_Blinky
+LDA #Entity_Ghost_Character_Blinky                          ;
 STA Entity_Ghost_Character,X                                ;spawn blinky
 
 CODE_8619:
-LDA #Entity_ID_Ghost
-JSR SpawnEntity_8A61
-BMI CODE_8639
+LDA #Entity_ID_Ghost                                        ;try to spawn a ghost
+JSR SpawnEntity_8A61                                        ;
+BMI CODE_8639                                               ;again, if all slots are somehow occupied, no spawn occurs
 
-LDA #$0E
+LDA #$0E                                                    ;inky's x-position
 STA Entity_CurrentTileXPosition,x
-JSR CODE_867A
+JSR PlaceGhostInGhostBox_867A
 
 LDA #Entity_Ghost_Character_Inky
 STA Entity_Ghost_Character,X                                ;spawn inky
 
-LDY CurrentLevel
+LDY CurrentLevel                                            ;
 CPY #$04                                                    ;level 5 check...
-BCC CODE_8634
+BCC CODE_8634                                               ;
 
-LDY #$03
+LDY #$03                                                    ;limit index
 
 CODE_8634:
 LDA DATA_EFDB,Y
@@ -1180,7 +1180,7 @@ BMI CODE_8659
 
 LDA #$10
 STA Entity_CurrentTileXPosition,x
-JSR CODE_867A
+JSR PlaceGhostInGhostBox_867A
 
 LDA #Entity_Ghost_Character_Pinky
 STA Entity_Ghost_Character,X                                ;
@@ -1189,7 +1189,7 @@ LDY CurrentLevel
 CPY #$04                                                    ;level 5 check...
 BCC CODE_8654
 
-LDY #$03
+LDY #$03                                                    ;limit index yet again (really should've just loaded this once into Y and preserve it...)
 
 CODE_8654:
 LDA DATA_EFD7,Y
@@ -1202,7 +1202,7 @@ BMI RETURN_8679
 
 LDA #$12
 STA Entity_CurrentTileXPosition,x
-JSR CODE_867A
+JSR PlaceGhostInGhostBox_867A
 
 LDA #Entity_Ghost_Character_Sue
 STA Entity_Ghost_Character,X                                ;last ghost to spawn - sue
@@ -1211,7 +1211,7 @@ LDY CurrentLevel                                            ;something to do wit
 CPY #4
 BCC CODE_8674
 
-LDY #$03
+LDY #$03                                                    ;limit ghost state!
 
 CODE_8674:
 LDA DATA_EFDF,Y
@@ -1220,30 +1220,32 @@ STA $20,X
 RETURN_8679:
 RTS
 
-CODE_867A:
-LDA #$00
-STA Entity_CurrentTileSubXPosition,x
-STA Entity_CurrentTileSubYPosition,x
+;initialize some stuff, related to the ghosts in the ghost box when loading a level
+PlaceGhostInGhostBox_867A:
+LDA #$00                                                    ;initialize x and y sub positions
+STA Entity_CurrentTileSubXPosition,x                        ;
+STA Entity_CurrentTileSubYPosition,x                        ;
 
-LDA $8D
-STA Entity_CurrentTileYPosition,x
+LDA $8D                                                     ;this is an input Y position (this could've been a constant because this doesn't change)
+STA Entity_CurrentTileYPosition,x                           ;
 
-LDA #Entity_Direction_Up
-STA Entity_Direction,X
-RTS
+LDA #Entity_Direction_Up                                    ;
+STA Entity_Direction,X                                      ;
+RTS                                                         ;
 
+;swaps variables from player 1 to player 2 and vice-versa, related to 2 player alternating mode
 CODE_868C:
 LDX #$08
 
 LOOP_868E:
-LDA $CF,X
+LDA Score_CurrentPlayer-1,X                                 ;swap various things like score and lives
 PHA
 
-LDA $039F,X
-STA $CF,X
+LDA OtherPlayerScore-1,X                                    ;trade places
+STA Score_CurrentPlayer-1,X                                 ;
 
 PLA
-STA $039F,X
+STA OtherPlayerScore-1,X
 DEX
 BNE LOOP_868E
 
@@ -2169,7 +2171,7 @@ STA Entity_YSpeed,X
 LDA #$00
 STA Entity_XSpeed,X
 
-JSR CODE_A32C
+JSR UpdateEntityTilePositions_A32C
 
 LDA Entity_CurrentTileYPosition,X                           ;don't turn into a ghost yet if haven't gone far enough
 CMP #$0F                                                    ;
@@ -2237,7 +2239,7 @@ LDA #$10
 STA Entity_TargetTileXPosition,X
 
 CODE_8C49:
-JSR CODE_909C
+JSR HandleMovementToTargetTile_909C                         ;make ghost eyes move towards its destination
 
 LDA Entity_CurrentTileYPosition,x                           ;check if it managed to reach the ghost gate's y-position
 CMP #$0B
@@ -2294,7 +2296,7 @@ STA Entity_Direction,X
 LDA #$10
 STA Entity_XSpeed,X
 
-JSR CODE_A32C
+JSR UpdateEntityTilePositions_A32C
 RTS
 
 CLV                                                         ;\unused
@@ -2319,7 +2321,7 @@ STA Entity_Direction,X
 
 LDA #-$10
 STA Entity_XSpeed,X
-JSR CODE_A32C
+JSR UpdateEntityTilePositions_A32C
 
 CODE_8CC4:
 LDA $20,X
@@ -2335,7 +2337,7 @@ STA Entity_YSpeed,X
 LDA #$00
 STA Entity_XSpeed,X
 
-JSR CODE_A32C
+JSR UpdateEntityTilePositions_A32C
 
 LDA Entity_CurrentTileYPosition,x
 CMP #$0B
@@ -2362,7 +2364,7 @@ STA Entity_YSpeed,X
 LDA #$00
 STA Entity_XSpeed,X
 
-JSR CODE_A32C
+JSR UpdateEntityTilePositions_A32C
 
 LDA Entity_CurrentTileYPosition,x
 CMP #$0D
@@ -2380,7 +2382,7 @@ STA Entity_YSpeed,X
 
 LDA #$00
 STA Entity_XSpeed,X
-JSR CODE_A32C
+JSR UpdateEntityTilePositions_A32C
 
 LDA Entity_CurrentTileYPosition,x
 CMP #$0F
@@ -2413,7 +2415,7 @@ RTS
 
 CODE_8D46:
 JSR CODE_8DAD
-JSR CODE_909C
+JSR HandleMovementToTargetTile_909C
 
 CODE_8D4C:
 LDA #$00                                                    ;no special props
@@ -2631,7 +2633,7 @@ SEC                                                         ;
 SBC Entity_CurrentTileXPosition,Y                           ;get the HELL outta here!
 STA Entity_TargetTileXPosition,X                            ;
 
-JSR CODE_909C
+JSR HandleMovementToTargetTile_909C                         ;move towards the target tile that's nowhere near the player
 
 LDA FrameCounter                                            ;animate vulnerable ghost
 LSR A                                                       ;
@@ -2728,128 +2730,116 @@ LDA #ScoreReward_800Pts                                     ;give 800 score... t
 JSR GiveScore_FDB3                                          ;
 RTS                                                         ;
 
-;background collision detection?
-CODE_8EFA:
+;background collision detection? this one checks if there's a solid tile to the left of the entity
+GetSolidTileBit_Left_8EFA:
 Macro_SetWord MazeSolidTileBits, $89
 
-LDA Entity_CurrentTileYPosition,x
-ASL A
-ASL A
-STA $8B
+LDA Entity_CurrentTileYPosition,x                           ;current y pos
+ASL A                                                       ;
+ASL A                                                       ;
+STA $8B                                                     ;
 
-LDA Entity_CurrentTileXPosition,x
-SEC
-SBC #$01
-STA $8D
-LSR A
-LSR A
-LSR A
-CLC
-ADC $8B
-TAY
-LDA ($89),Y
-STA $8F
+LDA Entity_CurrentTileXPosition,x                           ;
+SEC                                                         ;
+SBC #$01                                                    ;get the tile to the left of the entity
+STA $8D                                                     ;
+LSR A                                                       ;
+LSR A                                                       ;
+LSR A                                                       ;
+CLC                                                         ;
+ADC $8B                                                     ;
+TAY                                                         ;
+LDA ($89),Y                                                 ;get solid bit or lack thereof
+STA $8F                                                     ;
 
-LDA $8D
-AND #$07
-TAY
-LDA DATA_E13A,Y
-AND $8F
-RTS
+LDA $8D                                                     ;
+AND #$07                                                    ;one of the 8 bits for 8 respeective tiles in the current area of the maze
+TAY                                                         ;
+LDA BitValues_E13A,Y                                        ;
+AND $8F                                                     ;mash these bits together to see if the space is actually solid or not
+RTS                                                         ;
 
-CODE_8F27:
-LDA #$5A
-STA $89
+GetSolidTileBit_Right_8F27:
+Macro_SetWord MazeSolidTileBits, $89
 
-LDA #$04
-STA $8A
+LDA Entity_CurrentTileYPosition,x                           ;
+ASL A                                                       ;
+ASL A                                                       ;
+STA $8B                                                     ;
 
-LDA Entity_CurrentTileYPosition,x
-ASL A
-ASL A
-STA $8B
+LDA Entity_CurrentTileXPosition,x                           ;
+CLC                                                         ;
+ADC #$01                                                    ;offset to the right to see if that tile is solid.
+STA $8D                                                     ;
+LSR A                                                       ;
+LSR A                                                       ;
+LSR A                                                       ;some spooky math to calculate where in RAM we should be checking for solid tile bit.
+CLC                                                         ;
+ADC $8B                                                     ;
+TAY                                                         ;
+LDA ($89),Y                                                 ;are you scared yet?
+STA $8F                                                     ;
 
-LDA Entity_CurrentTileXPosition,x
-CLC
-ADC #$01
-STA $8D
-LSR A
-LSR A
-LSR A
-CLC
-ADC $8B
-TAY
-LDA ($89),Y
-STA $8F
+LDA $8D                                                     ;
+AND #$07                                                    ;
+TAY                                                         ;
+LDA BitValues_E13A,Y                                        ;
+AND $8F                                                     ;compare these bits, this will determine if the solid matter exists or not.
+RTS                                                         ;
 
-LDA $8D
-AND #$07
-TAY
-LDA DATA_E13A,Y
-AND $8F
-RTS
+GetSolidTileBit_Up_8F54:
+Macro_SetWord MazeSolidTileBits, $89
 
-CODE_8F54:
-LDA #$5A
-STA $89
+LDA Entity_CurrentTileYPosition,x                           ;get entity's current tile on y axis
+SEC                                                         ;
+SBC #$01                                                    ;offset up to see if it's solid or no.
+ASL A                                                       ;
+ASL A                                                       ;
+STA $8B                                                     ;
 
-LDA #$04
-STA $8A
+LDA Entity_CurrentTileXPosition,x                           ;
+LSR A                                                       ;
+LSR A                                                       ;
+LSR A                                                       ;
+CLC                                                         ;
+ADC $8B                                                     ;
+TAY                                                         ;
+LDA ($89),Y                                                 ;
+STA $8F                                                     ;
 
-LDA Entity_CurrentTileYPosition,x
-SEC
-SBC #$01
-ASL A
-ASL A
-STA $8B
+LDA Entity_CurrentTileXPosition,x                           ;
+AND #$07                                                    ;
+TAY                                                         ;
+LDA BitValues_E13A,Y                                        ;
+AND $8F                                                     ;solid or not solid, that's the question.
+RTS                                                         ;
 
-LDA Entity_CurrentTileXPosition,x
-LSR A
-LSR A
-LSR A
-CLC
-ADC $8B
-TAY
-LDA ($89),Y
-STA $8F
+GetSolidTileBit_Down_8F80:
+Macro_SetWord MazeSolidTileBits, $89
 
-LDA Entity_CurrentTileXPosition,x
-AND #$07
-TAY
-LDA DATA_E13A,Y
-AND $8F
-RTS
+LDA Entity_CurrentTileYPosition,x                           ;get entity's current tile...
+CLC                                                         ;
+ADC #$01                                                    ;offset down 1 tile to see if its solid or not.
+ASL A                                                       ;
+ASL A                                                       ;
+STA $8B                                                     ;
 
-CODE_8F80:
-LDA #$5A
-STA $89
+LDA Entity_CurrentTileXPosition,x                           ;
+LSR A                                                       ;
+LSR A                                                       ;
+LSR A                                                       ;
+CLC                                                         ;
+ADC $8B                                                     ;
+TAY                                                         ;
+LDA ($89),Y                                                 ;
+STA $8F                                                     ;
 
-LDA #$04
-STA $8A
-
-LDA Entity_CurrentTileYPosition,x
-CLC
-ADC #$01
-ASL A
-ASL A
-STA $8B
-
-LDA Entity_CurrentTileXPosition,x
-LSR A
-LSR A
-LSR A
-CLC
-ADC $8B
-TAY
-LDA ($89),Y
-STA $8F
-
-LDA Entity_CurrentTileXPosition,x
-AND #$07
-TAY
-LDA DATA_E13A,Y
-AND $8F
-RTS
+LDA Entity_CurrentTileXPosition,x                           ;
+AND #$07                                                    ;
+TAY                                                         ;
+LDA BitValues_E13A,Y                                        ;get this tile's bit value
+AND $8F                                                     ;compare if the wall is truly solid
+RTS                                                         ;
 
 DrawingPriorityPerGhost_8FAC:
 .byte $04,$03,$01,$02
@@ -3034,454 +3024,466 @@ ADC Entity_GFXFrame,X                                       ;
 STA Entity_GFXFrame,X                                       ;
 RTS                                                         ;
 
-;handle directional movement?
-CODE_909C:
-LDA Player_WhoDied                                          ;checks for death??
-BEQ CODE_90A1
-RTS
+;Update entity's position & move towards the target tile
+HandleMovementToTargetTile_909C:
+LDA Player_WhoDied                                          ;checks if player died??
+BEQ CODE_90A1                                               ;
+RTS                                                         ;if player is dead, nothing happens.
 
 CODE_90A1:
 LDA Entity_Direction,X                                      ;check if moving direction = left
-CMP #Entity_Direction_Left
-BNE CODE_90AB
+CMP #Entity_Direction_Left                                  ;
+BNE CODE_90AB                                               ;
 
-JSR CODE_90C3
-RTS
+JSR EntityMovesLeft_90C3
+RTS                                                         ;
 
 CODE_90AB:
 CMP #Entity_Direction_Right                                 ;moving direction = right
-BNE CODE_90B3
+BNE CODE_90B3                                               ;
 
-JSR CODE_911B
-RTS
+JSR EntityMovesRight_911B                                   ;go right and maybe turn at an intersection
+RTS                                                         ;
 
 CODE_90B3:
 CMP #Entity_Direction_Up                                    ;moving direction = up
 BNE CODE_90BB
-JSR CODE_916E
-RTS
+
+JSR EntityMovesUp_916E                                      ;
+RTS                                                         ;
 
 CODE_90BB:
 CMP #Entity_Direction_Down                                  ;moving direction = down
-BNE RETURN_90C2                                             ;can't interact if you're moving in an invalid direction.
+BNE RETURN_90C2                                             ;can't do anything if moving in an invalid direction.
 
-JSR CODE_91C6
+JSR EntityMovesDown_91C6                                    ;
 
 RETURN_90C2:
-RTS
+RTS                                                         ;
 
-CODE_90C3:
-LDA CurrentEntitySpeed
-EOR #$FF
-CLC
-ADC #$01
-STA Entity_XSpeed,X
+EntityMovesLeft_90C3:
+LDA CurrentEntitySpeed                                      ;
+EOR #$FF                                                    ;
+CLC                                                         ;
+ADC #$01                                                    ;invert value so it's actually rightwards
+STA Entity_XSpeed,X                                         ;
 
-LDA #$00
-STA Entity_YSpeed,X
+LDA #$00                                                    ;no y-speed
+STA Entity_YSpeed,X                                         ;
 
-LDA #$80
-STA Entity_CurrentTileSubYPosition,x
+LDA #$80                                                    ;fix y-position
+STA Entity_CurrentTileSubYPosition,x                        ;
 
-LDA Entity_CurrentTileXPosition,X
-STA $8F
-JSR CODE_A32C
+LDA Entity_CurrentTileXPosition,X                           ;get entity's current tile it's aligning
+STA $8F                                                     ;
+JSR UpdateEntityTilePositions_A32C                          ;actually move
 
 LDA $20,X
-BNE CODE_90EF
+BNE CODE_90EF                                               ;moved onto the next tile, update its chasing detection
 
-LDA Entity_CurrentTileXPosition,X
-CMP $8F
-BEQ RETURN_90EE
+LDA Entity_CurrentTileXPosition,X                           ;check entity's current tile...
+CMP $8F                                                     ;check if it's the same as before updating position
+BEQ RETURN_90EE                                             ;if so, nothing special happens
 
-LDA #$01
+LDA #$01                                                    ;moved onto the next tile
 STA $20,X
 
 RETURN_90EE:
-RTS
+RTS                                                         ;
 
 CODE_90EF:
-LDA Entity_CurrentTileSubXPosition,x
-BPL CODE_90F5
-RTS
+LDA Entity_CurrentTileSubXPosition,x                        ;check if it's not too far to the right on subposition
+BPL CODE_90F5                                               ;
+RTS                                                         ;not enough to the left to check for intersections or anything like that
 
 CODE_90F5:
-JSR CODE_9219
+JSR CheckWhichDirectionToGo_9219                            ;go whichever direction you think is the best
 
 LDA #$00
-STA $20,X
+STA $20,X                                                   ;not at intersection anymore, technically
 
-LDA $C2
-CMP #$01
+LDA EntityTurningDirection
+CMP #Entity_Direction_Up                                    ;check if we tricked the entity into thinking taking the route upward will get it to its destination
 BNE CODE_910B
 
-LDA #$80
-STA Entity_CurrentTileSubXPosition,x
+LDA #$80                                                    ;snap its position
+STA Entity_CurrentTileSubXPosition,x                        ;
 
-LDA #Entity_Direction_Up
-STA Entity_Direction,X
+LDA #Entity_Direction_Up                                    ;take the route upward
+STA Entity_Direction,X                                      ;
 
 CODE_910B:
-LDA $C2
-CMP #$03
-BNE RETURN_911A
+LDA EntityTurningDirection
+CMP #Entity_Direction_Down                                  ;check if the entity thinks moving down will be good for it
+BNE RETURN_911A                                             ;it'll just keep moving in the same direction
 
-LDA #$80
-STA Entity_CurrentTileSubXPosition,x
+LDA #$80                                                    ;snap its position
+STA Entity_CurrentTileSubXPosition,x                        ;
 
-LDA #Entity_Direction_Down
-STA Entity_Direction,X
+LDA #Entity_Direction_Down                                  ;take the road downward
+STA Entity_Direction,X                                      ;
 
 RETURN_911A:
 RTS
 
-CODE_911B:
-LDA CurrentEntitySpeed
-STA Entity_XSpeed,X
+EntityMovesRight_911B:
+LDA CurrentEntitySpeed                                      ;
+STA Entity_XSpeed,X                                         ;
 
-LDA #$00
+LDA #$00                                                    ;not moving vertically, only horizontally
 STA Entity_YSpeed,X
 
-LDA #$80
-STA Entity_CurrentTileSubYPosition,x
+LDA #$80                                                    ;make sure its y-position is not any weird value
+STA Entity_CurrentTileSubYPosition,x                        ;
 
-LDA Entity_CurrentTileXPosition,x
-STA $8F
-JSR CODE_A32C
+LDA Entity_CurrentTileXPosition,x                           ;
+STA $8F                                                     ;
+JSR UpdateEntityTilePositions_A32C                          ;move
 
 LDA $20,X
-BNE CODE_9142
+BNE CODE_9142                                               ;check if it just moved onto the next tile
 
-LDA Entity_CurrentTileXPosition,x
-CMP $8F
-BEQ RETURN_9142
+LDA Entity_CurrentTileXPosition,x                           ;are we at a different tile than the one we were on before?
+CMP $8F                                                     ;
+BEQ RETURN_9142                                             ;
 
-LDA #$01
+LDA #$01                                                    ;will check intersection opportunity.
 STA $20,X
 
 RETURN_9142:
-RTS
+RTS                                                         ;
 
 CODE_9142:
-LDA Entity_CurrentTileSubXPosition,x
-BMI CODE_9148
-RTS
+LDA Entity_CurrentTileSubXPosition,x                        ;
+BMI CODE_9148                                               ;
+RTS                                                         ;
 
 CODE_9148:
-JSR CODE_9219
+JSR CheckWhichDirectionToGo_9219
 
-LDA #$00
+LDA #$00                                                    ;
 STA $20,X
 
-LDA $C2
-CMP #$01
-BNE CODE_915E
+LDA EntityTurningDirection                                  ;
+CMP #Entity_Direction_Up                                    ;
+BNE CODE_915E                                               ;
 
-LDA #$80
-STA Entity_CurrentTileSubXPosition,x
+LDA #$80                                                    ;snap horizontally, will move up through the maze
+STA Entity_CurrentTileSubXPosition,x                        ;
 
-LDA #Entity_Direction_Up
-STA Entity_Direction,X
+LDA #Entity_Direction_Up                                    ;
+STA Entity_Direction,X                                      ;
 
 CODE_915E:
-LDA $C2
-CMP #$03
-BNE RETURN_916D
+LDA EntityTurningDirection                                  ;
+CMP #Entity_Direction_Down                                  ;
+BNE RETURN_916D                                             ;
 
-LDA #$80
-STA Entity_CurrentTileSubXPosition,x
+LDA #$80                                                    ;
+STA Entity_CurrentTileSubXPosition,x                        ;snap its position so it doesn't look weird when moving vertically.
 
-LDA #Entity_Direction_Down
-STA Entity_Direction,X
+LDA #Entity_Direction_Down                                  ;
+STA Entity_Direction,X                                      ;
 
 RETURN_916D:
-RTS
+RTS                                                         ;
 
-CODE_916E:
-LDA CurrentEntitySpeed
-EOR #$FF
-CLC
-ADC #$01
-STA Entity_YSpeed,X
+EntityMovesUp_916E:
+LDA CurrentEntitySpeed                                      ;
+EOR #$FF                                                    ;
+CLC                                                         ;
+ADC #$01                                                    ;invert so it actually updates its position moving up.
+STA Entity_YSpeed,X                                         ;
 
-LDA #$00
-STA Entity_XSpeed,X
+LDA #$00                                                    ;
+STA Entity_XSpeed,X                                         ;no horizontal speed when moving up.
 
-LDA #$80
-STA Entity_CurrentTileSubXPosition,x
+LDA #$80                                                    ;
+STA Entity_CurrentTileSubXPosition,x                        ;its x-position should be consistent.
 
-LDA Entity_CurrentTileYPosition,x
-STA $8F
-JSR CODE_A32C
+LDA Entity_CurrentTileYPosition,x                           ;
+STA $8F                                                     ;
+JSR UpdateEntityTilePositions_A32C                          ;
 
 LDA $20,X
-BNE CODE_919A
+BNE CODE_919A                                               ;moved onto the next tile?
 
-LDA Entity_CurrentTileYPosition,x
-CMP $8F
-BEQ RETURN_9199
+LDA Entity_CurrentTileYPosition,x                           ;did we reach the next tile?
+CMP $8F                                                     ;
+BEQ RETURN_9199                                             ;
 
-LDA #$01
+LDA #$01                                                    ;yeah
 STA $20,X
 
 RETURN_9199:
-RTS
+RTS                                                         ;
 
 CODE_919A:
-LDA Entity_CurrentTileSubYPosition,x
-BPL CODE_91A0
-RTS
+LDA Entity_CurrentTileSubYPosition,x                        ;make sure it's aligned with a potential intersection correctly.
+BPL CODE_91A0                                               ;
+RTS                                                         ;
 
 CODE_91A0:
-JSR CODE_9219
+JSR CheckWhichDirectionToGo_9219                            ;
 
-LDA #$00
+LDA #$00                                                    ;
 STA $20,X
 
-LDA $C2
-CMP #$02
-BNE CODE_91B6
+LDA EntityTurningDirection                                  ;check if it should move left.
+CMP #Entity_Direction_Left                                  ;
+BNE CODE_91B6                                               ;
 
-LDA #$80
-STA Entity_CurrentTileSubYPosition,x
+LDA #$80                                                    ;snap position but vertically this time.
+STA Entity_CurrentTileSubYPosition,x                        ;
 
-LDA #Entity_Direction_Left
-STA Entity_Direction,X
+LDA #Entity_Direction_Left                                  ;will move left.
+STA Entity_Direction,X                                      ;
 
 CODE_91B6:
-LDA $C2
-CMP #$00
-BNE RETURN_91C5
+LDA EntityTurningDirection                                  ;check if it should move right.
+CMP #Entity_Direction_Right                                 ;
+BNE RETURN_91C5                                             ;
 
-LDA #$80
-STA Entity_CurrentTileSubYPosition,x
+LDA #$80                                                    ;
+STA Entity_CurrentTileSubYPosition,x                        ;fix position in case our speed was extreme
 
-LDA #Entity_Direction_Right
-STA Entity_Direction,X
+LDA #Entity_Direction_Right                                 ;
+STA Entity_Direction,X                                      ;
 
 RETURN_91C5:
-RTS
+RTS                                                         ;
 
-CODE_91C6:
-LDA CurrentEntitySpeed
-STA Entity_YSpeed,X
+EntityMovesDown_91C6:
+LDA CurrentEntitySpeed                                      ;
+STA Entity_YSpeed,X                                         ;
 
-LDA #$00
-STA Entity_XSpeed,X
+LDA #$00                                                    ;should not move horizontally, the usual.
+STA Entity_XSpeed,X                                         ;
 
-LDA #$80
-STA Entity_CurrentTileSubXPosition,x
+LDA #$80                                                    ;
+STA Entity_CurrentTileSubXPosition,x                        ;snap position
 
-LDA Entity_CurrentTileYPosition,x
-STA $8F
-JSR CODE_A32C
+LDA Entity_CurrentTileYPosition,x                           ;
+STA $8F                                                     ;
+JSR UpdateEntityTilePositions_A32C                          ;
 
 LDA $20,X
-BNE CODE_91ED
+BNE CODE_91ED                                               ;
 
-LDA Entity_CurrentTileYPosition,x
-CMP $8F
-BEQ RETURN_91EC
+LDA Entity_CurrentTileYPosition,x                           ;are we there yet?
+CMP $8F                                                     ;
+BEQ RETURN_91EC                                             ;no.
 
-LDA #$01
+LDA #$01                                                    ;check if we should decide which way to go at an intersection.
 STA $20,X
 
 RETURN_91EC:
-RTS
+RTS                                                         ;
 
 CODE_91ED:
-LDA Entity_CurrentTileSubYPosition,x
-BMI CODE_91F3
-RTS
+LDA Entity_CurrentTileSubYPosition,x                        ;make sure it aligns perfectly well vertically.
+BMI CODE_91F3                                               ;
+RTS                                                         ;
 
 CODE_91F3:
-JSR CODE_9219
+JSR CheckWhichDirectionToGo_9219                            ;
 
-LDA #$00
+LDA #$00                                                    ;checked for potential directions. won't do it again until we moved another tile.
 STA $20,X
 
-LDA $C2
-CMP #$02
-BNE CODE_9209
+LDA EntityTurningDirection                                  ;
+CMP #Entity_Direction_Left                                  ;
+BNE CODE_9209                                               ;
 
-LDA #$80
-STA Entity_CurrentTileSubYPosition,x
+LDA #$80                                                    ;fix y position
+STA Entity_CurrentTileSubYPosition,x                        ;
 
-LDA #Entity_Direction_Left
-STA Entity_Direction,X
+LDA #Entity_Direction_Left                                  ;move left please
+STA Entity_Direction,X                                      ;
 
 CODE_9209:
-LDA $C2
-CMP #$00
-BNE RETURN_9218
+LDA EntityTurningDirection                                  ;
+CMP #Entity_Direction_Right                                 ;
+BNE RETURN_9218                                             ;
 
-LDA #$80
-STA Entity_CurrentTileSubYPosition,x
+LDA #$80                                                    ;repair y position
+STA Entity_CurrentTileSubYPosition,x                        ;
 
-LDA #Entity_Direction_Right
-STA Entity_Direction,X
+LDA #Entity_Direction_Right                                 ;move right please
+STA Entity_Direction,X                                      ;
 
 RETURN_9218:
-RTS
+RTS                                                         ;
 
-CODE_9219:
-LDA #$00
-STA $C2
-STA $C3
+;it's time to decide where to go at an intersection (if we're AT an intersection in the first place).
+CheckWhichDirectionToGo_9219:
+LDA #$00                                                    ;
+STA EntityTurningDirection                                  ;clear these chasing related variables
+STA EntityTurningLikelihood                                 ;
 
-LDA Entity_Direction,X
-CMP #Entity_Direction_Right
-BEQ CODE_923D
+LDA Entity_Direction,X                                      ;check if its currenctly moving right
+CMP #Entity_Direction_Right                                 ;
+BEQ CODE_923D                                               ;cannot decide if it should be moving left if moving right
 
-JSR CODE_8EFA
-BNE CODE_923D
+JSR GetSolidTileBit_Left_8EFA                               ;
+BNE CODE_923D                                               ;if the wall is solid to the left, we cannot move left at all.
 
-LDA #$02
-JSR CODE_9298
-STA $89
-CMP $C3
-BCC CODE_923D
+LDA #Entity_Direction_Left                                  ;check if maybe we should move left
+JSR GetCurrentDirectionPreferenceValue_9298                 ;
+STA $89                                                     ;
+CMP EntityTurningLikelihood                                 ;check how likely it'll move to the left
+BCC CODE_923D                                               ;if likelihood is lower, it definitely won't turn left
 
-LDA #$02
-STA $C2
+LDA #Entity_Direction_Left                                  ;it'll probably move left
+STA EntityTurningDirection                                  ;
 
-LDA $89
-STA $C3
+LDA $89                                                     ;
+STA EntityTurningLikelihood                                 ;overwrite the chance of going any other way. unless we find a more favorable route, we'll go that way.
 
 CODE_923D:
-LDA Entity_Direction,X
-CMP #Entity_Direction_Left
-BEQ CODE_925B
+LDA Entity_Direction,X                                      ;check if going left...
+CMP #Entity_Direction_Left                                  ;
+BEQ CODE_925B                                               ;cannot turn right if going left.
 
-JSR CODE_8F27
-BNE CODE_925B
+JSR GetSolidTileBit_Right_8F27
+BNE CODE_925B                                               ;wall solid to the right (what)
 
-LDA #$00
-JSR CODE_9298
-STA $89
-CMP $C3
-BCC CODE_925B
+LDA #Entity_Direction_Right                                 ;
+JSR GetCurrentDirectionPreferenceValue_9298                 ;let's see if we should turn right...
+STA $89                                                     ;
+CMP EntityTurningLikelihood                                 ;hmm... is turning right a more favorable option?
+BCC CODE_925B                                               ;
 
-LDA #$00
-STA $C2
+LDA #Entity_Direction_Right                                 ;it'll move right, probably.
+STA EntityTurningDirection                                  ;
 
-LDA $89
-STA $C3
+LDA $89                                                     ;
+STA EntityTurningLikelihood                                 ;overwrite chance of turning anywhere else.
 
 CODE_925B:
-LDA Entity_Direction,X
-CMP #Entity_Direction_Up
-BEQ CODE_9279
+LDA Entity_Direction,X                                      ;check if moving up.
+CMP #Entity_Direction_Up                                    ;
+BEQ CODE_9279                                               ;cannot turn down if we're moving up!
 
-JSR CODE_8F80
-BNE CODE_9279
+JSR GetSolidTileBit_Down_8F80
+BNE CODE_9279                                               ;tile below is a solid one
 
-LDA #$03
-JSR CODE_9298
-STA $89
-CMP $C3
-BCC CODE_9279
+LDA #Entity_Direction_Down                                  ;
+JSR GetCurrentDirectionPreferenceValue_9298                 ;
+STA $89                                                     ;
+CMP EntityTurningLikelihood                                 ;check if turning down would be preferable.
+BCC CODE_9279                                               ;
 
-LDA #$03
-STA $C2
+LDA #Entity_Direction_Down                                  ;the answer is... yes.
+STA EntityTurningDirection                                  ;
 
-LDA $89
-STA $C3
+LDA $89                                                     ;
+STA EntityTurningLikelihood                                 ;chances of turning any other way are overriden.
 
 CODE_9279:
-LDA Entity_Direction,X
-CMP #Entity_Direction_Down
-BEQ RETURN_9297
+LDA Entity_Direction,X                                      ;check if it were moving down...
+CMP #Entity_Direction_Down                                  ;
+BEQ RETURN_9297                                             ;cannot turn up. that would be cheating.
 
-JSR CODE_8F54
-BNE RETURN_9297
+JSR GetSolidTileBit_Up_8F54
+BNE RETURN_9297                                             ;space above is occupied by a wall
 
-LDA #$01
-JSR CODE_9298
-STA $89
-CMP $C3
-BCC RETURN_9297
+LDA #Entity_Direction_Up                                    ;check if it should maybe, juuuuuuuust maybe, go up.
+JSR GetCurrentDirectionPreferenceValue_9298                 ;
+STA $89                                                     ;
+CMP EntityTurningLikelihood                                 ;can it go up?
+BCC RETURN_9297                                             ;no
 
-LDA #$01
-STA $C2
+LDA #Entity_Direction_Up                                    ;it can go up.
+STA EntityTurningDirection                                  ;yes
 
-LDA $89
-STA $C3
+LDA $89                                                     ;this is not necessary anymore, since all directions have been checked. up it is.
+STA EntityTurningLikelihood                                 ;
 
 RETURN_9297:
-RTS
+RTS                                                         ;
 
-CODE_9298:
-STA $89
+;input A - the direction the entity's currently contemplating going in
+GetCurrentDirectionPreferenceValue_9298:
+STA $89                                                     ;remember theoretical direction it may gain
 
-JSR CODE_92CE
-ASL A
-ASL A
-ADC $89
-TAY
-LDA DATA_92A6,Y
-RTS
+JSR GetTurningPreferencesIndex_92CE                         ;alright, where is the target?
+ASL A                                                       ;
+ASL A                                                       ;
+ADC $89                                                     ;add theoretical direction it'll go in to see if it really will go that way.
+TAY                                                         ;
+LDA TurningPreferenceValues_92A6,Y                          ;
+RTS                                                         ;
 
-DATA_92A6:
-.byte $50,$30,$20,$40,$50,$40,$20,$30
-.byte $40,$50,$30,$20,$30,$50,$40,$20
-.byte $20,$40,$50,$30,$20,$30,$50,$40
-.byte $30,$20,$40,$50,$40,$20,$30,$50
+;likelihoods of turning a specific direction, in following order:
+;right, up, left, down
+TurningPreferenceValues_92A6:
+.byte $50,$30,$20,$40                                       ;target is to the right and below the entity, horizontal distance is greater than vertical. prefer going right the most.
+.byte $50,$40,$20,$30                                       ;target is to the right and above the entity, horizontal distance is greater than vertical. prefer going right the most.
+.byte $40,$50,$30,$20                                       ;target is to the right and above the entity, vertical distance is greater than horizontal. prefer going up the most.
+.byte $30,$50,$40,$20                                       ;target is to the left and above the entity, vertical distance is greater than horizontal. prefer going up the most.
+.byte $20,$40,$50,$30                                       ;target is to the left and above the entity, horizontal distance is greater than vertical. prefer going left the most.
+.byte $20,$30,$50,$40                                       ;target is to the left and below the entity, horizontal distance is greater than vertical. prefer going left the most.
+.byte $30,$20,$40,$50                                       ;target is to the left and below the entity, vertical distance is greater than vertical. prefer going down the most.
+.byte $40,$20,$30,$50                                       ;target is to the right and below the entity, vertical distance is greater than horizontal. prefer going down the most.
 
-DATA_92C6:
-.byte $01,$02,$04,$03,$00,$07,$05,$06
+;indexes for direction favoring, based on where the target is at relative to the entity and the distance between them.
+TurningPreferenceIndexes_92C6:
+.byte $01,$02,$04,$03
+.byte $00,$07,$05,$06                                       ;indexes for when the target is below entity
 
-CODE_92CE:
-LDA Entity_CurrentTileYPosition,X
-SEC
-SBC Entity_TargetTileYPosition,X
-STA $8B
+;calculate the distance and position between entity and its target tile to determine which way it should turn if possible.
+GetTurningPreferencesIndex_92CE:
+LDA Entity_CurrentTileYPosition,X                           ;
+SEC                                                         ;
+SBC Entity_TargetTileYPosition,X                            ;
+STA $8B                                                     ;Y distance between this entity and its target
 
-LDA Entity_TargetTileXPosition,X
-SEC
-SBC Entity_CurrentTileXPosition,X
-STA $8D
+LDA Entity_TargetTileXPosition,X                            ;
+SEC                                                         ;
+SBC Entity_CurrentTileXPosition,X                           ;
+STA $8D                                                     ;X distance between this target and its entity
 
-LDA #$00
-STA $8F
+LDA #$00                                                    ;
+STA $8F                                                     ;default
 
-LDA $8B
-BPL CODE_92F3
-EOR #$FF
-CLC
-ADC #$01
-STA $8B
+LDA $8B                                                     ;check if the entity is above or below its target
+BPL CODE_92F3                                               ;if below, nothing special happens
+EOR #$FF                                                    ;
+CLC                                                         ;
+ADC #$01                                                    ;properly invert if the target is above the entity
+STA $8B                                                     ;
 
-LDA #$04
-STA $8F
+LDA #$04                                                    ;
+STA $8F                                                     ;remember that the entity is above, it'll prefer going down to it
 
 CODE_92F3:
-LDA $8D
-BPL CODE_9302
-EOR #$FF
-CLC
-ADC #$01
+LDA $8D                                                     ;check if entity is to the left of the target
+BPL CODE_9302                                               ;
+EOR #$FF                                                    ;
+CLC                                                         ;
+ADC #$01                                                    ;properly invert if the entity is to the right of the target
 STA $8D
 
-INC $8F
-INC $8F
+INC $8F                                                     ;target is to the left. probably want to favor going that way
+INC $8F                                                     ;
 
 CODE_9302:
-LDA $8B
-CMP $8D
-BMI CODE_930A
+LDA $8B                                                     ;check if vertical distance is higher or lower than horizontal
+CMP $8D                                                     ;
+BMI CODE_930A                                               ;if lower, skip ahead
 
-INC $8F
+INC $8F                                                     ;will favor vertical directions
 
 CODE_930A:
-LDY $8F
-LDA DATA_92C6,Y
-RTS
+LDY $8F                                                     ;
+LDA TurningPreferenceIndexes_92C6,Y                         ;
+RTS                                                         ;
 
 HandleGhostScatterTimerAndTimedTurning_9310:
 JSR CODE_9320
 
-LDA GhostScatterTimer+1                                      ;check if done counting this timer down
+LDA GhostScatterTimer+1                                     ;check if done counting this timer down
 BMI RETURN_931F
 
 LDA GhostScatterTimer                                       ;
@@ -3739,11 +3741,11 @@ JSR HandleEnteringTunnel_E459
 LDA FreezeTimer
 BNE CODE_9495
 
-LDA #$10
-STA Entity_TargetTileXPosition,X
+LDA #$10                                                    ;it'll attempt to go to the center of the screen (actually, there's no true center, so the target tile is to the right)
+STA Entity_TargetTileXPosition,X                            ;
 
-LDA #$0E
-STA Entity_TargetTileYPosition,X                            ;default tile on y-axis to reach
+LDA #$0E                                                    ;default tile on y-axis to reach, which is inside of the ghost box. 
+STA Entity_TargetTileYPosition,X                            ;obviously it can't reach the inside of the ghostbox, it's just so the item goes towards the middle of the maze.
 
 LDA $CD
 CMP #$06
@@ -3762,30 +3764,30 @@ JSR RemoveEntity_8A5C                                       ;item disappears
 INC BouncingItemState                                       ;it cannot reappear again
 
 CODE_947E:
-JSR CODE_909C
+JSR HandleMovementToTargetTile_909C                         ;bouncing fruit will bounce towards its desitnation
 
-LDA FrameCounter
-AND #$0F
-BNE CODE_948E
+LDA FrameCounter                                            ;play bounce SFX every 16 frames
+AND #$0F                                                    ;
+BNE CODE_948E                                               ;
 
 LDA #Sound_Bounce                                           ;
 JSR PlaySound_F2FF                                          ;indicate your boingy presence
 
-LDA #$00                                                    ;
+LDA #$00                                                    ;make it appear as if it touched the ground, which is why it made the SFX.
 
 CODE_948E:
-TAY
-LDA BouncingItemYOffsets_9430,Y
-CLV
-BVC CODE_9497
+TAY                                                         ;
+LDA BouncingItemYOffsets_9430,Y                             ;
+CLV                                                         ;
+BVC CODE_9497                                               ;
 
 CODE_9495:
-LDA #$00
+LDA #$00                                                    ;
 
 CODE_9497:
-STA EntityVisualYOffset
+STA EntityVisualYOffset                                     ;
 
-JSR HandleEntityVisualPosition_A383
+JSR HandleEntityVisualPosition_A383                         ;
 
 LDA #$00                                                    ;reset right after so nothing else is affected by bouncing shenanigans
 STA EntityVisualYOffset                                     ;
@@ -4880,15 +4882,15 @@ STA Entity_TargetTileYPosition,X                            ;random tile on y-ax
 LDA #$10
 STA Entity_TargetTileXPosition,X                            ;fixed tile on x-axis to reach
 
-JSR CODE_909C
+JSR HandleMovementToTargetTile_909C                         ;move towards that randomness.
 
-LDA #$00
-STA Entity_GFXProperties,X
-JSR HandleEnteringTunnel_E459
-JSR HandleEntityVisualPosition_A383
+LDA #$00                                                    ;
+STA Entity_GFXProperties,X                                  ;
+JSR HandleEnteringTunnel_E459                               ;can enter a tunnel if necessary.
+JSR HandleEntityVisualPosition_A383                         ;
 
-LDY Player1EntitySlot
-BMI CODE_9A15
+LDY Player1EntitySlot                                       ;
+BMI CODE_9A15                                               ;
 
 LDA #$04
 JSR CODE_A35B
@@ -5539,9 +5541,9 @@ CODE_A227:
 STA Player2DirectionalInput
 
 LDA Player1Inputs                                           ;check if the player enters A+B+Start+Select
-AND #Input_AllNonDirectional
-CMP #Input_AllNonDirectional
-BNE RETURN_A234
+AND #Input_AllNonDirectional                                ;
+CMP #Input_AllNonDirectional                                ;
+BNE RETURN_A234                                             ;
 
 JMP SoftReset_8099                                          ;trigger soft reset
 
@@ -5558,22 +5560,22 @@ LDA Player1Inputs_Press                                     ;
 AND #Input_A|Input_B|Input_Select|Input_Start               ;
 STA Player1Inputs_Press                                     ;
 
-LDA Player1DirectionalInput                                 ;this is pointless, because these addresses only hold one direction bit
-AND #Input_A|Input_B|Input_Select|Input_Start               ;as you can imagine, D-pad direction != A, B, Select or Start
+LDA Player1DirectionalInput                                 ;not as pointless as I thought, this removes d-pad inputs (demo mode)... though they could've just LDA #$00:STA, but I digress.
+AND #Input_A|Input_B|Input_Select|Input_Start               ;
 STA Player1DirectionalInput                                 ;
 RTS                                                         ;
 
 ;same as above but for player 2
 DisableDPadInputs_Player2_A248:
-LDA Player2Inputs
-AND #Input_A|Input_B|Input_Select|Input_Start
-STA Player2Inputs
+LDA Player2Inputs                                           ;
+AND #Input_A|Input_B|Input_Select|Input_Start               ;
+STA Player2Inputs                                           ;
 
-LDA Player2Inputs_Press
-AND #Input_A|Input_B|Input_Select|Input_Start
-STA Player2Inputs_Press
+LDA Player2Inputs_Press                                     ;
+AND #Input_A|Input_B|Input_Select|Input_Start               ;
+STA Player2Inputs_Press                                     ;
 
-LDA Player2DirectionalInput                                 ;this is pointless, because I explained that above
+LDA Player2DirectionalInput                                 ;
 AND #Input_A|Input_B|Input_Select|Input_Start               ;
 STA Player2DirectionalInput                                 ;
 RTS                                                         ;
@@ -5615,69 +5617,71 @@ ORA $89                                                     ;directional inputs
 STA Player1Inputs                                           ;
 RTS                                                         ;
 
-CODE_A308:
-LDA Entity_CurrentTileSubXPosition,x
-CLC
-ADC $89
-STA Entity_CurrentTileSubXPosition,x
+;$89 - speed value, $8A - high byte
+UpdateEntityTilePositionHorizontal_A308:
+LDA Entity_CurrentTileSubXPosition,x                        ;
+CLC                                                         ;
+ADC $89                                                     ;speed...
+STA Entity_CurrentTileSubXPosition,x                        ;sub position (remember, every 32 units = 1 real px)
 
-LDA Entity_CurrentTileXPosition,x
-ADC $8A
-STA Entity_CurrentTileXPosition,x
-RTS
+LDA Entity_CurrentTileXPosition,x                           ;update real tile alignment
+ADC $8A                                                     ;
+STA Entity_CurrentTileXPosition,x                           ;
+RTS                                                         ;
 
-CODE_A31A:
-LDA Entity_CurrentTileSubYPosition,x
-CLC
-ADC $89
-STA Entity_CurrentTileSubYPosition,x
+;$89 - speed value, $8A - high byte
+UpdateEntityTilePositionVertical_A31A:
+LDA Entity_CurrentTileSubYPosition,x                        ;
+CLC                                                         ;
+ADC $89                                                     ;speed,,,
+STA Entity_CurrentTileSubYPosition,x                        ;sub position
 
-LDA Entity_CurrentTileYPosition,x
-ADC $8A
-STA Entity_CurrentTileYPosition,x
-RTS
+LDA Entity_CurrentTileYPosition,x                           ;
+ADC $8A                                                     ;
+STA Entity_CurrentTileYPosition,x                           ;maybe move onto the next 8x8 tile if moved far enough or fast enough
+RTS                                                         ;
 
-;handle movement i think
-CODE_A32C:
-LDA Entity_XSpeed,X
-JSR CODE_A339
+UpdateEntityTilePositions_A32C:
+LDA Entity_XSpeed,X                                         ;get x speed
+JSR PrepAndMoveEntityHorizontally_A339                      ;move horizontally
 
-LDA Entity_YSpeed,X
-JSR CODE_A34A
-RTS
+LDA Entity_YSpeed,X                                         ;get y speed
+JSR PrepAndMoveEntityVertically_A34A                        ;move vertically
+RTS                                                         ;
 
-CODE_A339:
-STA $89
-BPL CODE_A342
+PrepAndMoveEntityHorizontally_A339:
+STA $89                                                     ;
+BPL CODE_A342                                               ;check if moving right or left and correct high byte as needed
 
-LDA #$FF
-CLV
-BVC CODE_A344
+LDA #$FF                                                    ;high byte for moving left
+CLV                                                         ;
+BVC CODE_A344                                               ;
 
 CODE_A342:
-LDA #$00
+LDA #$00                                                    ;high byte for moving right
 
 CODE_A344:
-STA $8A
-JSR CODE_A308
-RTS
+STA $8A                                                     ;
 
-CODE_A34A:
+JSR UpdateEntityTilePositionHorizontal_A308                 ;actually do the thing with the x speed and position
+RTS                                                         ;
+
+PrepAndMoveEntityVertically_A34A:
 STA $89
-BPL CODE_A353
+BPL CODE_A353                                               ;check if moving down or up and correct high byte as needed
 
-LDA #$FF
-CLV
-BVC CODE_A355
+LDA #$FF                                                    ;high byte for moving up
+CLV                                                         ;
+BVC CODE_A355                                               ;
 
 CODE_A353:
-LDA #$00
+LDA #$00                                                    ;high byte for moving down
 
 CODE_A355:
-STA $8A
+STA $8A                                                     ;
 
-JSR CODE_A31A
-RTS
+JSR UpdateEntityTilePositionVertical_A31A                   ;move vertically for real
+RTS                                                         ;
 
 ;collision or something?
 CODE_A35B:
@@ -6087,11 +6091,11 @@ TAY
 LDA Entity_CurrentTileXPosition,x                           ;check player overlapping with a dot
 AND #$07
 TAX
-LDA DATA_E13A,X
+LDA BitValues_E13A,X
 AND EatenDotStateBits,Y
 BEQ CODE_E07A                                               ;if there's no dot, then player gets nothing
 
-LDA DATA_E13A,X
+LDA BitValues_E13A,X
 EOR #$FF
 AND EatenDotStateBits,Y
 STA EatenDotStateBits,Y
@@ -6255,8 +6259,8 @@ DEC $89
 RETURN_E139:
 RTS
 
-;each bit value
-DATA_E13A:
+;pretty generic values each bit represents, from bit 7 to bit 0. used for bitwise operations (like dot and solid tile related matters)
+BitValues_E13A:
 .byte $80,$40,$20,$10,$08,$04,$02,$01
 
 ;player just ate a normal dot
@@ -6668,7 +6672,7 @@ STA Entity_GFXFrame,X
 RTS
 
 CODE_E327:
-JSR CODE_8EFA
+JSR GetSolidTileBit_Left_8EFA
 BNE RETURN_E330
 
 LDA #Entity_Direction_Left
@@ -6678,7 +6682,7 @@ RETURN_E330:
 RTS
 
 CODE_E331:
-JSR CODE_8F27
+JSR GetSolidTileBit_Right_8F27
 BNE RETURN_E33A
 
 LDA #Entity_Direction_Right
@@ -6688,7 +6692,7 @@ RETURN_E33A:
 RTS
 
 CODE_E33B:
-JSR CODE_8F54
+JSR GetSolidTileBit_Up_8F54
 BNE RETURN_E344
 
 LDA #Entity_Direction_Up
@@ -6698,7 +6702,7 @@ RETURN_E344:
 RTS
 
 CODE_E345:
-JSR CODE_8F80
+JSR GetSolidTileBit_Down_8F80
 BNE RETURN_E34E
 
 LDA #Entity_Direction_Down
@@ -6723,8 +6727,9 @@ STA Entity_YSpeed,X
 LDA #$80
 STA Entity_CurrentTileSubYPosition,x
 
-JSR CODE_A32C
-JSR CODE_8EFA
+JSR UpdateEntityTilePositions_A32C
+
+JSR GetSolidTileBit_Left_8EFA
 BEQ RETURN_E380
 
 LDA Entity_CurrentTileSubXPosition,x
@@ -6754,8 +6759,9 @@ STA Entity_YSpeed,X
 LDA #$80
 STA Entity_CurrentTileSubYPosition,x
 
-JSR CODE_A32C
-JSR CODE_8F27
+JSR UpdateEntityTilePositions_A32C
+
+JSR GetSolidTileBit_Right_8F27
 BEQ RETURN_E3AD
 
 LDA Entity_CurrentTileSubXPosition,x
@@ -6788,8 +6794,8 @@ STA Entity_XSpeed,X
 LDA #$80
 STA Entity_CurrentTileSubXPosition,x
 
-JSR CODE_A32C
-JSR CODE_8F54
+JSR UpdateEntityTilePositions_A32C
+JSR GetSolidTileBit_Up_8F54
 BEQ RETURN_E3DF
 
 LDA Entity_CurrentTileSubYPosition,x
@@ -6819,8 +6825,8 @@ STA Entity_XSpeed,X
 LDA #$80
 STA Entity_CurrentTileSubXPosition,x
 
-JSR CODE_A32C
-JSR CODE_8F80
+JSR UpdateEntityTilePositions_A32C
+JSR GetSolidTileBit_Down_8F80
 BEQ RETURN_E40C
 
 LDA Entity_CurrentTileSubYPosition,x
@@ -7125,7 +7131,7 @@ STA $0386
 STA CurrentDotsRemaining
 STA CurrentDotsRemaining+1
 STA $0385
-STA $0387
+STA PowerPelletsRemaining
 STA $8F
 
 JSR CODE_EA14
@@ -8024,7 +8030,7 @@ RTS                                                         ;
 ;used to tell which spaces the entities can move around freely in
 UnsetSolidSpaceBit_EAAE:
 LDX $0386
-LDA DATA_E13A,X
+LDA BitValues_E13A,X
 EOR #$FF
 LDY $0385
 AND MazeSolidTileBits,Y
@@ -8034,7 +8040,7 @@ RTS
 ;big dot counts as a dot
 CODE_EAC0:
 LDX $0386
-LDA DATA_E13A,X
+LDA BitValues_E13A,X
 EOR #$FF
 LDY $0385
 AND EatenDotStateBits,Y
@@ -8044,12 +8050,12 @@ RTS
 ;count small dots
 CODE_EAD2:
 LDX $0386
-LDA DATA_E13A,X
+LDA BitValues_E13A,X
 LDY $0385
 AND EatenDotStateBits,Y
 BEQ CODE_EAF4
 
-LDA DATA_E13A,X
+LDA BitValues_E13A,X
 ORA EatenDotStateBits,Y
 STA EatenDotStateBits,Y
 
@@ -8840,13 +8846,17 @@ RTS                                                         ;
 .include "Data/PowerPelletTimes.asm"
 .include "Data/PlayerAndGhostSpeeds.asm"
 
-;related to ghost spawn i believe. blinky is always out of the ghost box.
+;the amount of times each ghost has to move up and down before getting out of the ghost box + 2.
+;For example, $03 means it needs to move up and down once before getting out, since at value 2 it's set to get out.
+;Pinky
 DATA_EFD7:
 .byte $08,$04,$03,$03
 
+;Inky
 DATA_EFDB:
 .byte $10,$08,$04,$03
 
+;Sue
 DATA_EFDF:
 .byte $20,$10,$08,$03
 
@@ -9030,7 +9040,7 @@ RTS                                                         ;
 RepeatPreviousPairOfData_F3DF:
 LDA Sound_DataPointerLow,X                                  ;
 CLC                                                         ;
-ADC #$FE                                                    ;throw back a couple of bytes
+ADC #-2                                                     ;throw back a couple of bytes
 STA Sound_DataPointerLow,X                                  ;
 STA $89                                                     ;
 
@@ -9269,43 +9279,43 @@ JSR CODE_F88E
 LDA #$00
 STA FrameCounter+1
 
-LOOP_F59F:
+ExecuteCharacterCastScreen_F59F:
 JSR WaitAFrame_FFAC
 JSR HandleControllerInputs_A10A
-JSR CODE_F96B
+JSR HandleCharacterCastAction_F96B
 JSR HandleEntities_8A8C
 JSR HandleEntityGraphics_8A12
 
-LDA FrameCounter+1
-CMP #$04
-BNE CODE_F5D0
+LDA FrameCounter+1                                          ;check if 1024 frames have elapsed
+CMP #$04                                                    ;check for start button instead
+BNE CODE_F5D0                                               ;
 
-LDX #$04
-LDA Options_Type
+LDX #$04                                                    ;check all options
+LDA Options_Type                                            ;
 
 LOOP_F5B9:
-ORA Options_Type,X
-DEX
-BNE LOOP_F5B9
-CMP #$00
-BNE CODE_F5CD
+ORA Options_Type,X                                          ;
+DEX                                                         ;
+BNE LOOP_F5B9                                               ;
+CMP #$00                                                    ;check if all options are at default values (which means 1 player, pac booster off, normal difficulty, arcade maze selection and starting level 1.
+BNE CODE_F5CD                                               ;if not, DO NOT PLAY DEMO!!! I REPEAT, NO DEMO MODE
 
-LDA #$02
-STA DemoMovementIndex                                       ;start demo mode
-JMP CODE_80CC
+LDA #$02                                                    ;
+STA DemoMovementIndex                                       ;start demo mode with no issues.
+JMP CODE_80CC                                               ;
 
 ;unused
 CLV                                                         ;
 BVC CODE_F5D0                                               ;
 
 CODE_F5CD:
-JMP InitOptionsScreen_F64B
+JMP InitOptionsScreen_F64B                                  ;go to the options menu instead
 
 CODE_F5D0:
 LDA Player1Inputs_Press                                     ;pressed start?
 AND #Input_Start                                            ;
-BEQ LOOP_F59F                                               ;negative
-JMP InitOptionsScreen_F64B
+BEQ ExecuteCharacterCastScreen_F59F                         ;negative
+JMP InitOptionsScreen_F64B                                  ;positive. going to options screen
 
 ;handle palette animation for TENGEN PRESENTS and "PRESS START" strings (former for both game load and title screen, latter is title screen only)
 AnimateTengenPresentsAndPressStartText_F5D9:
@@ -9942,32 +9952,33 @@ LDA #CreditsAndOptions_BorderTileBottom                     ;bottom half of the 
 JSR DrawEntireRow_FB4F                                      ;
 RTS                                                         ;the end
 
-CODE_F96B:
-LDA FrameCounter                                            ;every fourth frame
-AND #$03
-BNE CODE_F9CE
+;handles animation, character appearances, text string display, everything related to character cast
+HandleCharacterCastAction_F96B:
+LDA FrameCounter                                            ;will animate lights every 4 frames
+AND #$03                                                    ;
+BNE CODE_F9CE                                               ;
 
 LDA FrameCounter                                            ;
-LSR A
-LSR A
-AND #$07
-STA $8B
+LSR A                                                       ;
+LSR A                                                       ;
+AND #$07                                                    ;
+STA $8B                                                     ;will change light's offset on where it should appear
 
-;animate horizontal lights
+;animate horizontal lights at the top
 LDA #$0F
 JSR CODE_FAAE
 
 LDA #$17
 JSR CODE_FAAE
 
-;animate vertical lights
+;horizontal lights at the bottom
 LDA #$E8
 JSR CODE_FACF
 
 LDA #$F0
 JSR CODE_FACF
 
-LDA $8B
+LDA $8B                                                     ;animate vertical light left
 ASL A
 ASL A
 ASL A
@@ -9991,7 +10002,7 @@ STA $8F
 LDA #NeonSignBorder_VertLeftNoLights
 JSR SingleTileIntoBuffer_9B00
 
-LDA #$E0
+LDA #$E0                                                    ;animate vertical light right
 SEC
 SBC $8B
 CLC
@@ -10025,22 +10036,22 @@ RTS
 
 ;timings for string display during character cast, 16-bit
 CharacterCastStringDisplayTimings_F9D8:
-.byte $40,$00
-.byte $B8,$00
-.byte $BC,$00
-.byte $C0,$00
-.byte $38,$01
-.byte $3C,$01
-.byte $40,$01
-.byte $B8,$01
-.byte $BC,$01
-.byte $C0,$01
-.byte $38,$02
-.byte $3C,$02
-.byte $40,$02
-.byte $B8,$02
-.byte $BC,$02
-.byte $C0,$02
+.word $0040
+.word $00B8
+.word $00BC
+.word $00C0
+.word $0138
+.word $013C
+.word $0140
+.word $01B8
+.word $01BC
+.word $01C0
+.word $0238
+.word $023C
+.word $0240
+.word $02B8
+.word $02BC
+.word $02C0
 
 ;string display data, comes in pairs. both can be set to draw something or set to 0 to not display anything
 CharacterCastStringsData_F9F8:
