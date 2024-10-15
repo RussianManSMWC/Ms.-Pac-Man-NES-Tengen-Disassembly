@@ -1,5 +1,5 @@
 GRAPHICAL TABLES are stored in these files.
-these are used to format sprite tiles fo each entity and their animations
+these are used to format sprite tiles for each entity and their animations
 Format:
 The very first byte of the table determines how many sprite tiles are used
 The rest are 4 byte-long entries for each of the tiles

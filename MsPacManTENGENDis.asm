@@ -1490,7 +1490,7 @@ SEC                                                         ;
 SBC #$05                                                    ;if current level is 1 through 5
 BCC CODE_88AA                                               ;do not use current level, instead it'll be maze layout that determines the palette
 LSR A                                                       ;
-LSR A                                                       ;levels beyond 6 get divided by 6, then summed with maze layout to get appropriate palette
+LSR A                                                       ;levels beyond 6 get divided by 8, then multiplied by 2, then summed with maze layout to get appropriate palette
 LSR A                                                       ;
 
 CLV                                                         ;
@@ -1510,8 +1510,8 @@ BVC CODE_88C6                                               ;
 ;non-arcade maze palettes
 CODE_88B3:
 LDA CurrentMazeLayout                                       ;if maze layout less than 4 (acrade mazes...)
-CMP #$04
-BCC CODE_88C6
+CMP #$04                                                    ;
+BCC CODE_88C6                                               ;arcade mazes are not used in any other maze selection. maybe they were planned to or maybe it's a just in case.
 
 LDA CurrentLevel
 CMP #31                                                     ;level 32
@@ -8160,11 +8160,11 @@ RTS                                                         ;
 CODE_EB5D:
 STA CurrentActCutscene                                      ;current act cutscene value...
 
-JSR CODE_EB67
-JSR CODE_EBB2                                               ;draw clapper and probably other stuff
+JSR PlayActMusic_EB67
+JSR PlayCutscene_EBB2                                       ;draw clapper and probably other stuff
 RTS
 
-CODE_EB67:
+PlayActMusic_EB67:
 CMP #$01                                                    ;check if act 1
 BNE CODE_EB76                                               ;
 
@@ -8197,7 +8197,7 @@ LDA #Sound_Act4Part2
 JSR PlaySound_F2FF
 RTS
 
-;play act 3
+;play act 3 music
 CODE_EB94:
 LDA #Sound_Act3Part1
 JSR PlaySound_F2FF
@@ -8221,7 +8221,7 @@ ActCutscene_ClapboardVRAMOffsetLow_EBAE:
  ;a lonely duplicate of the above (was it supposed to be 5x4 intead of 5x3?)
 .byte <ClapperBaseVRAMPosition+$40
 
-CODE_EBB2:
+PlayCutscene_EBB2:
 JSR DefaultVisuals_F91D
 
 LDA #$00
