@@ -166,8 +166,8 @@ CurrentDotsRemaining = $0383                                ;16-bit, both big an
 
 ;$0385-$0386 - something tile related
 PowerPelletsRemaining = $0387
-PowerPelletsVRAMPosLow = $0388                              ;6 bytes each (for a max of 6 big dots). if FF, the pellet has been consumed
-PowerPelletsVRAMPosHigh = $038E
+PowerPelletsVRAMPosHigh = $0388                             ;6 bytes each (for a max of 6 big dots). if FF, the pellet has been consumed
+PowerPelletsVRAMPosLow = $038E
 PowerPelletsTileXPos = $0394                                ;which tile it's on horizontally
 PowerPelletsTileYPos = $039A                                ;which tile its on vertically (within the maze)
 

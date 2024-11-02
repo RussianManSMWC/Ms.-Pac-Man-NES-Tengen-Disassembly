@@ -1318,7 +1318,7 @@ LDA #$00                                                    ;
 LDX #$05                                                    ;
 
 LOOP_8705:
-STA PowerPelletsVRAMPosLow,X                                ;temporarily set their position to indicate that they aren't eaten ($FF would indicate a lack of a power-pellet)
+STA PowerPelletsVRAMPosHigh,X                               ;temporarily set their position to indicate that they aren't eaten ($FF would indicate a lack of a power-pellet)
 DEX                                                         ;
 BPL LOOP_8705                                               ;
 
@@ -3868,7 +3868,7 @@ STA $8B                                                     ;
 LDY #$05                                                    ;check through all power pellets
 
 LOOP_94FD:
-LDA PowerPelletsVRAMPosLow,Y                                ;check if power pellet exists
+LDA PowerPelletsVRAMPosHigh,Y                               ;check if power pellet exists
 BMI CODE_9505                                               ;
 
 JSR UpdatePowerPelletTile_9549
@@ -3934,10 +3934,10 @@ UpdatePowerPelletTile_9549:
 LDA #$01                                                    ;one tile
 JSR EnableBufferSequencingAndUpdateTileBuffer_9AF7          ;
 
-LDA PowerPelletsVRAMPosLow,Y                                ;get VRAM in
+LDA PowerPelletsVRAMPosHigh,Y                               ;get VRAM in
 JSR UpdateTileBuffer_9AD0                                   ;
 
-LDA PowerPelletsVRAMPosHigh,Y                               ;
+LDA PowerPelletsVRAMPosLow,Y                                ;
 JSR UpdateTileBuffer_9AD0                                   ;
 
 LDA $8B                                                     ;
@@ -3959,7 +3959,7 @@ STA $8B                                                     ;
 JSR UpdatePowerPelletTile_9549                              ;replace with an empty tile
 
 LDA #$FF                                                    ;ate this pellet
-STA PowerPelletsVRAMPosLow,Y                                ;
+STA PowerPelletsVRAMPosHigh,Y                               ;
 
 LDA Entity_PlayerCharacter,X                                ;
 STA Score_RewardedPlayer                                    ;reward this player
@@ -6169,7 +6169,7 @@ HandlePowerPelletConsumption_E0B7:
 LDY #$05
 
 LOOP_E0B9:
-LDA PowerPelletsVRAMPosLow,Y                                ;is this power pellet present?
+LDA PowerPelletsVRAMPosHigh,Y                               ;is this power pellet present?
 BMI CODE_E0C9                                               ;
 
 JSR CheckPowerPelletCollision_E0CD                          ;eat it up (maybe)
@@ -7089,16 +7089,16 @@ JSR DrawPlayersScore_FE64                                   ;init player score d
 JSR StoreToControlAndRenderRegs_9A70                        ;
 RTS                                                         ;
 
-;this basically removes power pellets that aren't placed in the maze, at least internally. if the low VRAM position is set to 0 (initialized to this value on level load), it'll be disabled
+;this basically removes power pellets that aren't placed in the maze, at least internally. if the high VRAM position is set to 0 (initialized to this value on level load), it'll be disabled)
 DisableUnusedPowerPellets_E54F:
 LDX #$05                                                    ;
 
 LOOP_E551:
-LDA PowerPelletsVRAMPosLow,X                                ;
+LDA PowerPelletsVRAMPosHigh,X                               ;
 BNE CODE_E55B                                               ;
 
 LDA #$FF                                                    ;
-STA PowerPelletsVRAMPosLow,X                                ;
+STA PowerPelletsVRAMPosHigh,X                               ;
 
 CODE_E55B:
 DEX                                                         ;
@@ -7915,7 +7915,7 @@ RTS
 CODE_EA1A:
 LDX PowerPelletsRemaining                                   ;
 INC PowerPelletsRemaining                                   ;will check the next big dot
-LDA PowerPelletsVRAMPosLow,X                                ;has it been consumed?
+LDA PowerPelletsVRAMPosHigh,X                               ;has it been consumed?
 BPL CODE_EA2A                                               ;nope
 
 LDA #EmptyTile                                              ;the dot is not there anymore
@@ -7924,10 +7924,10 @@ RTS                                                         ;
 
 CODE_EA2A:
 LDA $8C                                                     ;remember where it's at
-STA PowerPelletsVRAMPosLow,X
+STA PowerPelletsVRAMPosHigh,X
 
 LDA $8B
-STA PowerPelletsVRAMPosHigh,X
+STA PowerPelletsVRAMPosLow,X
 
 LDA $0385
 AND #$03
