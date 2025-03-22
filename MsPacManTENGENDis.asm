@@ -3641,57 +3641,57 @@ LDA #Entity_ID_BouncingItem                                 ;boing boung item!
 JSR SpawnEntity_8A61                                        ;
 BMI RETURN_9421                                             ;sucks to be you! you didn't spawn!
 
-LDA #$80
-STA Entity_CurrentTileSubYPosition,x
+LDA #$80                                                    ;center vertically
+STA Entity_CurrentTileSubYPosition,x                        ;
 
-LDA CurrentMazeLayout
-ASL A
-TAY
-LDA MazeTunnelDataPointers_AD98,Y
-STA $97
+LDA CurrentMazeLayout                                       ;get tunnel locations
+ASL A                                                       ;
+TAY                                                         ;
+LDA MazeTunnelDataPointers_AD98,Y                           ;
+STA $97                                                     ;
 
-LDA MazeTunnelDataPointers_AD98+1,Y
-STA $98
+LDA MazeTunnelDataPointers_AD98+1,Y                         ;
+STA $98                                                     ;
 
-LDY #$00
+LDY #$00                                                    ;
 JSR PollRandomNumber_A3D8                                   ;come from the first or second tunnel, depends on the RNG
-AND #$01
-BEQ CODE_93F1
-INY
-INY
+AND #$01                                                    ;
+BEQ CODE_93F1                                               ;that means there must be minimum two tunnels for the item to spawn properly
+INY                                                         ;
+INY                                                         ;
 
 CODE_93F1:
 LDA ($97),Y
-STA $CF
-STA Entity_CurrentTileYPosition,x
+STA BouncingItem_ReturnTileY                                ;it'll return to the same tunnel eventually
+STA Entity_CurrentTileYPosition,x                           ;
 
-LDA #$00
-STA Entity_CurrentTileSubXPosition,x
-STA $CC
-STA $CD
+LDA #$00                                                    ;
+STA Entity_CurrentTileSubXPosition,x                        ;
+STA BouncingItem_PassiveBounceTimer                         ;initialize timer
+STA BouncingItem_PassiveBounceTimer+1                       ;
 
-JSR GetPlayerSlot_8D75
+JSR GetPlayerSlot_8D75                                      ;
 
 LDA Entity_CurrentTileXPosition,Y                           ;check if the player is on the right or the left side of the screen
-CMP #$10
-BPL CODE_9414
+CMP #$10                                                    ;
+BPL CODE_9414                                               ;
 
-LDA #Entity_Direction_Left
-STA Entity_Direction,X
+LDA #Entity_Direction_Left                                  ;
+STA Entity_Direction,X                                      ;
 
 LDA #$1E                                                    ;spawn on the right side of the screen
-CLV
-BVC CODE_941A
+CLV                                                         ;
+BVC CODE_941A                                               ;
 
 CODE_9414:
-LDA #Entity_Direction_Right
-STA Entity_Direction,X
+LDA #Entity_Direction_Right                                 ;
+STA Entity_Direction,X                                      ;
 
 LDA #$01                                                    ;spawn on the left side of the screen
 
 CODE_941A:
-STA $CE
-STA Entity_CurrentTileXPosition,x
+STA BouncingItem_ReturnTileX                                ;it will return where it came from
+STA Entity_CurrentTileXPosition,x                           ;
 
 INC BouncingItemState                                       ;this item has been spawned, maybe will spawn the next one, or none at all
 
@@ -3721,25 +3721,25 @@ BouncingItemYOffsets_9430:
 .byte $03,$03,$03,$02,$02,$01,$01,$00
 
 EntityMainCode_BouncingItem_9440:
-INC $CC
-BNE CODE_9446
+INC BouncingItem_PassiveBounceTimer                         ;incremement the timer
+BNE CODE_9446                                               ;
 
-INC $CD
+INC BouncingItem_PassiveBounceTimer+1                       ;high byte
 
 CODE_9446:
-LDA #$08
-STA Entity_DrawingPriority,X
+LDA #$08                                                    ;
+STA Entity_DrawingPriority,X                                ;
 
 LDA #$0C                                                    ;low speed
 STA CurrentEntitySpeed                                      ;
 
-LDA #$00
-STA Entity_GFXProperties,X
+LDA #$00                                                    ;clear properties, to be overwritten if inside of a tunnel
+STA Entity_GFXProperties,X                                  ;
 
-JSR HandleEnteringTunnel_E459
+JSR HandleEnteringTunnel_E459                               ;
 
-LDA FreezeTimer
-BNE CODE_9495
+LDA FreezeTimer                                             ;do not do anything foolish while this timer is active
+BNE CODE_9495                                               ;
 
 LDA #$10                                                    ;it'll attempt to go to the center of the screen (actually, there's no true center, so the target tile is to the right)
 STA Entity_TargetTileXPosition,X                            ;
@@ -3747,17 +3747,17 @@ STA Entity_TargetTileXPosition,X                            ;
 LDA #$0E                                                    ;default tile on y-axis to reach, which is inside of the ghost box. 
 STA Entity_TargetTileYPosition,X                            ;obviously it can't reach the inside of the ghostbox, it's just so the item goes towards the middle of the maze.
 
-LDA $CD
-CMP #$06
-BCC CODE_947E
+LDA BouncingItem_PassiveBounceTimer+1                       ;check the timer
+CMP #$06                                                    ;check if 1536 frames have elapsed (25.6 seconds)
+BCC CODE_947E                                               ;if not, continue
 
-LDA $CF
-STA Entity_TargetTileYPosition,X
+LDA BouncingItem_ReturnTileY                                ;go back home
+STA Entity_TargetTileYPosition,X                            ;
 
-LDA $CE
-STA Entity_TargetTileXPosition,X
-CMP Entity_CurrentTileXPosition,x                           ;check if aligns with current position
-BNE CODE_947E
+LDA BouncingItem_ReturnTileX                                ;
+STA Entity_TargetTileXPosition,X                            ;
+CMP Entity_CurrentTileXPosition,x                           ;check if aligns with current position (inside of a tunnel)
+BNE CODE_947E                                               ;
 
 JSR RemoveEntity_8A5C                                       ;item disappears
 
@@ -3945,7 +3945,6 @@ JSR UpdateTileBuffer_9AD0                                   ;tile in place of po
 JSR DisableBufferSequencing_9AFD                            ;
 RTS                                                         ;
 
-;power-pellet related?
 ConsumedPowerPellet_9563:
 LDA CurrentDotsRemaining                                    ;
 BNE CODE_956B                                               ;

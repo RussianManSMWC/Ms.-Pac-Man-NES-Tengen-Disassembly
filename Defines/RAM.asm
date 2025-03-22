@@ -91,8 +91,9 @@ CurrentMazeLayout = $CA                                     ;
 
 PacJuniorCount = $CB                                        ;how many pac-man juniors can spawn when two players collide with each other in the tunnel
 
-;$CC-$CD - some timer increased by the bouncing item...
-;$CE-$CF - X/Y tile position the bouncing item should reach?
+BouncingItem_PassiveBounceTimer = $CC                       ;16-bit, counts up for the bouncing item, after reaching a certain value, bouncing item will return to where it came from and disappear
+BouncingItem_ReturnTileX = $CE                              ;this is a target tile for the bouncing item, which is its spawn point. it goes there after bouncing passively for a while
+BouncingItem_ReturnTileY = $CF
 
 Score_CurrentPlayer = $D0                                   ;24-bit. in most cases, this is player 1's score, except for alternating 2P type
 ;$D3 - unused, but stored to an equally unused $03A3 (2 player alternating)

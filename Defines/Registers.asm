@@ -34,10 +34,10 @@ APU_NoiseVolume = $400C	                                    ;--LC VVVV, L - leng
 APU_NoiseLoop = $400E                                       ;bit 7 enables the loop, the bits 0 through 3 are the noise's period
 APU_NoiseLength = $400F                                     ;same length counter load bits as previous channels, if length counter halt bit is clear, the noise will play for a certain amount of time
 
-APU_DMCFrequency = $4010
+APU_DMCFrequency = $4010                                    ;IL-- RRRR. I - IRQ enabled flag, L - loop flag, R - rate index, basically determines the frequency of the sample
 APU_DMCLoadCounter = $4011                                  ;like a timer for how long it runs, I guess? Like linear counter for other channels.... I THINK??? QUESTION MARK????????
-APU_DMCSampleAddress = $4012                                ;where in ROM is the sample we're playing, between $C000 to $FFFF
-APU_DMCSampleLength = $4013
+APU_DMCSampleAddress = $4012                                ;where in ROM is the sample we're playing, starting from $C000 plus (input * 64).
+APU_DMCSampleLength = $4013                                 ;how long is the sample? (input * 16) plus 1.
 
 OAMDMAReg = $4014
 
